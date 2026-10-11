@@ -1,0 +1,16 @@
+{
+  "name": "aura-music-2",
+  "version": "1.0.0",
+  "description": "Aura Music - 100% Ad-Free Master Worldwide Music Streaming Application",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
+    "express": "^4.19.2"
+  }
+}

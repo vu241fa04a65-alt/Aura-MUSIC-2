@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura - Ad-Free Music Streaming</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231DB954'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z'/></svg>">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="manifest" href="/assets/manifest.json">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      
+      <!-- Brand & Top Nav Box -->
+      <div class="sidebar-box">
+        <div class="brand-header">
+          <a href="#" class="brand-logo" data-nav="home">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+            </svg>
+            <span>Aura Music</span>
+          </a>
+          <span class="ad-free-badge">AD-FREE</span>
+        </div>
+
+        <ul class="nav-links">
+          <li>
+            <a class="nav-link active" data-nav="home">
+              <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+              <span>Home</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav-link" data-nav="search">
+              <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+              <span>Search</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Library Box -->
+      <div class="sidebar-box library-box">
+        <div class="library-header">
+          <div class="library-title" data-nav="liked">
+            <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: currentColor;"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+            <span>Your Library</span>
+          </div>
+          <div class="library-actions">
+            <button class="icon-btn" id="createPlaylistBtn" title="Create Playlist">
+              <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Filter Tags -->
+        <div class="library-tags">
+          <button class="tag-btn" data-nav="liked">Liked Songs</button>
+          <button class="tag-btn" data-nav="playlists">My Playlists</button>
+          <button class="tag-btn" data-nav="local">Local Files</button>
+        </div>
+
+        <!-- Library List -->
+        <div class="library-list">
+          <!-- Liked Songs Entry -->
+          <div class="library-item" data-nav="liked">
+            <div class="library-item-icon liked-gradient">
+              <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: #fff;">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            </div>
+            <div class="library-item-info">
+              <div class="library-item-title">Liked Songs</div>
+              <div class="library-item-sub">Auto Playlist</div>
+            </div>
+          </div>
+
+          <!-- Local Files Entry -->
+          <div class="library-item" data-nav="local">
+            <div class="library-item-icon local-gradient">
+              <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: #fff;">
+                <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+              </svg>
+            </div>
+            <div class="library-item-info">
+              <div class="library-item-title">Local Audio Files</div>
+              <div class="library-item-sub">Computer Tracks</div>
+            </div>
+          </div>
+
+          <!-- User Created Playlists -->
+          <div id="sidebarPlaylistsList"></div>
+        </div>
+
+      </div>
+
+    </aside>
+
+    <!-- MAIN VIEW -->
+    <main class="main-view">
+      
+      <!-- Dynamic Ambient Glow -->
+      <div class="ambient-glow" id="ambientGlow"></div>
+
+      <!-- Top Header -->
+      <header class="top-header">
+        
+        <div class="nav-history">
+          <button class="round-btn" id="navBackBtn" title="Go back">
+            <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+          </button>
+          <button class="round-btn" id="navForwardBtn" title="Go forward">
+            <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </button>
+
+          <!-- Search Input in Header -->
+          <div class="header-search-wrap">
+            <div class="header-search-icon">
+              <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            </div>
+            <input type="text" class="header-search-input" id="headerSearchInput" placeholder="What do you want to play?" autocomplete="off">
+            <button class="search-clear-btn" id="searchClearBtn">&times;</button>
+          </div>
+        </div>
+
+        <div class="top-header-right">
+          <!-- Audio Quality Toggle Pill -->
+          <div class="quality-pill" id="qualityPill" title="Click to change streaming bitrate">
+            HD: <span id="qualityText">320 kbps</span>
+          </div>
+
+          <!-- Equalizer Button -->
+          <button class="icon-btn" id="eqToggleBtn" title="Equalizer & Sound FX">
+            <svg viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></svg>
+          </button>
+
+          <!-- Ad-Free Badge -->
+          <div class="ad-free-header-chip" title="100% Ad-Free Continuous Playback">
+            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+            <span>Ad-Free</span>
+          </div>
+        </div>
+
+      </header>
+
+      <!-- Dynamic View Scroll Area -->
+      <div class="view-scroll" id="viewScroll">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+
+    </main>
+
+    <!-- BOTTOM SPOTIFY PLAYER BAR -->
+    <footer class="player-bar">
+      
+      <!-- Track Info (Left) -->
+      <div class="player-left">
+        <div class="player-thumb-wrap">
+          <img class="player-thumb" id="playerThumb" src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80" alt="Track Cover">
+        </div>
+        <div class="player-track-info">
+          <div class="player-track-title" id="playerTrackTitle">Select a song to play</div>
+          <div class="player-track-artist" id="playerTrackArtist">Aura Music</div>
+        </div>
+        <!-- Actions beside song title/artist: Heart | Download | Three dots -->
+        <button class="player-heart-btn" id="playerHeartBtn" title="Save Song">
+          <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        </button>
+        <button class="player-action-sub-btn" id="playerBarDownloadBtn" title="Download MP3">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+        </button>
+        <button class="player-action-sub-btn" id="playerBarMenuBtn" title="More Options">
+          <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+        </button>
+      </div>
+
+      <!-- Controls & Progress (Center) -->
+      <div class="player-center">
+        <div class="player-controls">
+          <button class="control-btn" id="shuffleBtn" title="Shuffle">
+            <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+          </button>
+          <button class="control-btn" id="prevBtn" title="Previous">
+            <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+          </button>
+          <button class="play-pause-btn" id="playPauseBtn" title="Play">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="control-btn" id="nextBtn" title="Next">
+            <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+          </button>
+          <button class="control-btn" id="repeatBtn" title="Repeat">
+            <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+          </button>
+        </div>
+
+        <div class="playback-bar-wrap">
+          <span class="time-text" id="currentTime">0:00</span>
+          <div class="progress-bar-container" id="progressBarContainer">
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+          </div>
+          <span class="time-text" id="totalDuration">0:00</span>
+        </div>
+      </div>
+
+      <!-- Extra Controls (Right) -->
+      <div class="player-right">
+        <!-- Lyrics Toggle -->
+        <button class="control-btn" id="lyricsToggleBtn" title="Karaoke Synced Lyrics">
+          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+        </button>
+
+        <!-- Queue Flyout Toggle -->
+        <button class="control-btn" id="queueToggleBtn" title="Playing Queue">
+          <svg viewBox="0 0 24 24"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg>
+        </button>
+
+        <!-- Download Track -->
+        <button class="control-btn" id="downloadTrackBtn" title="Download MP3">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+        </button>
+
+        <!-- Volume Control -->
+        <div class="volume-bar-wrap">
+          <button class="control-btn" id="volumeBtn" title="Mute/Unmute">
+            <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+          </button>
+          <div class="volume-track" id="volumeContainer">
+            <div class="volume-fill" id="volumeFill"></div>
+          </div>
+        </div>
+
+        <!-- Fullscreen Mode -->
+        <button class="control-btn" id="fullscreenToggleBtn" title="Fullscreen Player">
+          <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+        </button>
+
+      </div>
+
+    </footer>
+
+    <!-- MOBILE BOTTOM NAVIGATION BAR -->
+    <nav class="mobile-bottom-nav">
+      <a class="mobile-nav-item active" data-nav="home">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        <span>Home</span>
+      </a>
+      <a class="mobile-nav-item" data-nav="search">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <span>Search</span>
+      </a>
+      <a class="mobile-nav-item" data-nav="liked">
+        <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        <span>Liked</span>
+      </a>
+      <a class="mobile-nav-item" data-nav="playlists">
+        <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+        <span>Playlists</span>
+      </a>
+    </nav>
+
+  </div>
+
+  <!-- LYRICS OVERLAY -->
+  <div class="lyrics-overlay" id="lyricsOverlay">
+    <div class="lyrics-header">
+      <div class="lyrics-title-meta">
+        <img id="lyricsTrackCover" src="" alt="">
+        <div>
+          <h2 id="lyricsTrackTitle" style="font-size: 1.5rem;">Track Title</h2>
+          <p id="lyricsTrackArtist" style="color: var(--text-secondary);">Artist Name</p>
+        </div>
+      </div>
+      <button class="icon-btn" id="lyricsCloseBtn" title="Close Lyrics">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+    <div class="lyrics-container" id="lyricsList"></div>
+  </div>
+
+  <!-- QUEUE DRAWER -->
+  <div class="queue-drawer" id="queueDrawer">
+    <div class="queue-header">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <h3 style="font-size: 1.1rem; font-weight: 700;">Play Queue</h3>
+        <button class="tag-btn" id="clearQueueBtn" style="font-size: 0.72rem; padding: 4px 8px; opacity: 0.8;" title="Clear upcoming queue">Clear</button>
+      </div>
+      <button class="icon-btn" id="queueCloseBtn">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </div>
+    <div class="queue-list" id="queueList"></div>
+  </div>
+
+  <!-- EQUALIZER MODAL -->
+  <div class="modal-backdrop" id="eqModal">
+    <div class="modal-content" style="max-width: 540px;">
+      <div class="modal-header">
+        <div>
+          <h3 style="font-size: 1.3rem; font-weight: 700;">Smart Audio Equalizer</h3>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">5-Band Hardware DSP &bull; Preamp &bull; Anti-Clipping Limiter</p>
+        </div>
+        <button class="icon-btn" id="eqModalClose">&times;</button>
+      </div>
+
+      <div class="eq-presets">
+        <button class="eq-preset-btn active" data-preset="flat">Flat / Normal</button>
+        <button class="eq-preset-btn" data-preset="bass">Bass Boost</button>
+        <button class="eq-preset-btn" data-preset="vocal">Vocal Clarity</button>
+        <button class="eq-preset-btn" data-preset="acoustic">Acoustic</button>
+        <button class="eq-preset-btn" data-preset="classical">Classical</button>
+        <button class="eq-preset-btn" data-preset="custom">Custom</button>
+      </div>
+
+      <!-- Preamp Control -->
+      <div class="eq-preamp-container">
+        <div class="eq-preamp-header">
+          <span>Master Preamp Gain</span>
+          <span class="eq-badge" id="eqPreampVal">0.0 dB</span>
+        </div>
+        <input type="range" class="eq-slider" id="eqPreampSlider" min="-12" max="12" step="0.5" value="0">
+      </div>
+
+      <!-- 5-Band Sliders -->
+      <div class="eq-sliders">
+        <div class="eq-band">
+          <input type="range" class="eq-slider" data-band="0" min="-12" max="12" step="0.5" value="0">
+          <span class="eq-freq-title">60 Hz</span>
+          <span class="eq-band-gain" id="eqBandVal0">0 dB</span>
+        </div>
+        <div class="eq-band">
+          <input type="range" class="eq-slider" data-band="1" min="-12" max="12" step="0.5" value="0">
+          <span class="eq-freq-title">250 Hz</span>
+          <span class="eq-band-gain" id="eqBandVal1">0 dB</span>
+        </div>
+        <div class="eq-band">
+          <input type="range" class="eq-slider" data-band="2" min="-12" max="12" step="0.5" value="0">
+          <span class="eq-freq-title">1 kHz</span>
+          <span class="eq-band-gain" id="eqBandVal2">0 dB</span>
+        </div>
+        <div class="eq-band">
+          <input type="range" class="eq-slider" data-band="3" min="-12" max="12" step="0.5" value="0">
+          <span class="eq-freq-title">4 kHz</span>
+          <span class="eq-band-gain" id="eqBandVal3">0 dB</span>
+        </div>
+        <div class="eq-band">
+          <input type="range" class="eq-slider" data-band="4" min="-12" max="12" step="0.5" value="0">
+          <span class="eq-freq-title">14 kHz</span>
+          <span class="eq-band-gain" id="eqBandVal4">0 dB</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE PLAYLIST MODAL -->
+  <div class="modal-backdrop" id="createPlaylistModal">
+    <div class="modal-content" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3 style="font-size: 1.2rem; font-weight: 700;">Create New Playlist</h3>
+        <button class="icon-btn" id="closeCreatePlaylistModal">&times;</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px; margin: 20px 0;">
+        <input type="text" id="newPlaylistNameInput" class="header-search-input" style="border-radius: var(--radius-md); padding: 12px 16px;" placeholder="Playlist Name (e.g. Chill Beats)" autofocus>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button class="tag-btn" onclick="document.getElementById('createPlaylistModal').classList.remove('open')">Cancel</button>
+        <button class="tag-btn" id="savePlaylistBtn" style="background: var(--accent-green); color: #000; font-weight: 700; transition: all 0.25s ease;">Save Playlist</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPOTIFY SONG CONTEXT MENU (IMAGE 2) -->
+  <div class="modal-backdrop spotify-sheet-backdrop" id="songContextMenuModal">
+    <div class="spotify-sheet-content">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-track-header">
+        <img id="menuTrackImg" class="sheet-track-img" src="" alt="Track Cover">
+        <div class="sheet-track-info">
+          <div id="menuTrackTitle" class="sheet-track-title">Song Title</div>
+          <div id="menuTrackArtist" class="sheet-track-artist">Artist Name</div>
+        </div>
+        <button class="icon-btn sheet-close-btn" id="closeSongContextMenu">&times;</button>
+      </div>
+      <div class="sheet-actions-list">
+        <button class="sheet-action-item" id="menuActionShare">
+          <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+          <span>Share</span>
+        </button>
+        <button class="sheet-action-item" id="menuActionAddToPlaylist">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+          <span>Add to playlist</span>
+        </button>
+        <button class="sheet-action-item" id="menuActionAddToQueue">
+          <svg viewBox="0 0 24 24"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>
+          <span>Add to Queue</span>
+        </button>
+        <button class="sheet-action-item" id="menuActionGoToQueue">
+          <svg viewBox="0 0 24 24"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg>
+          <span>Go to Queue</span>
+        </button>
+        <button class="sheet-action-item" id="menuActionDownload">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+          <span>Download MP3</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPOTIFY "SAVED IN" MODAL (IMAGE 3) -->
+  <div class="modal-backdrop spotify-sheet-backdrop" id="savedInModal">
+    <div class="spotify-sheet-content saved-in-content">
+      <div class="saved-in-nav">
+        <button class="saved-in-nav-btn" id="savedInCancelBtn">Cancel</button>
+        <span class="saved-in-title">Saved in</span>
+        <button class="saved-in-nav-btn done-text" id="savedInDoneTopBtn">Done</button>
+      </div>
+
+      <div class="saved-in-search-bar">
+        <div class="saved-in-input-wrap">
+          <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="text" id="savedInSearchInput" placeholder="Find playlist">
+        </div>
+        <button class="saved-in-new-playlist-btn" id="savedInNewPlaylistBtn">+ New playlist</button>
+      </div>
+
+      <div class="saved-in-list" id="savedInList">
+        <!-- Dynamically rendered (Liked Songs at top, followed by user playlists) -->
+      </div>
+
+      <div class="saved-in-footer">
+        <button class="saved-in-done-pill" id="savedInDoneBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN PLAYER OVERLAY -->
+  <div class="fullscreen-mode" id="fullscreenMode">
+    <button class="icon-btn fullscreen-exit" id="fullscreenExitBtn" title="Exit Fullscreen">
+      <svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+    </button>
+    <img id="fsCover" class="fullscreen-cover" src="" alt="Album Artwork">
+    <h2 id="fsTitle" style="font-size: 2.2rem; font-weight: 800; margin-bottom: 6px;">Song Title</h2>
+    <p id="fsArtist" style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 24px;">Artist Name</p>
+    <button class="big-play-btn" id="fsPlayPauseBtn" onclick="window.player.togglePlay()">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- SCRIPTS -->
+  <script src="/js/library.js"></script>
+  <script src="/js/player.js"></script>
+  <script src="/js/lyrics.js"></script>
+  <script src="/js/localFiles.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
