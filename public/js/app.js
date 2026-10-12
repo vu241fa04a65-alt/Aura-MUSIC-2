@@ -481,6 +481,8 @@ class AppController {
       }
     } else if (view === 'liked') {
       this.renderLikedSongsView();
+    } else if (view === 'downloaded') {
+      this.renderDownloadedSongsView();
     } else if (view === 'playlists') {
       this.renderPlaylistsView();
     } else if (view === 'local') {
@@ -1272,6 +1274,48 @@ class AppController {
     this.mainView.innerHTML = html;
   }
 
+  // --- Downloaded Songs View (Saved in App) ---
+  renderDownloadedSongsView() {
+    const downloadedTracks = this.library.getDownloadedSongs();
+    const safeJSON = JSON.stringify(downloadedTracks).replace(/"/g, '&quot;');
+
+    let html = `
+      <div class="detail-hero">
+        <div class="library-item-icon liked-gradient" style="width: 190px; height: 190px; border-radius: var(--radius-md); background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+          <svg style="width: 80px; height: 80px; fill: #fff;" viewBox="0 0 24 24">
+            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+          </svg>
+        </div>
+        <div class="detail-hero-info">
+          <span class="detail-hero-type">App Storage</span>
+          <h1 class="detail-hero-title">Downloaded Songs</h1>
+          <div class="detail-hero-meta">
+            <span><strong>${downloadedTracks.length} tracks saved in app</strong></span>
+          </div>
+        </div>
+      </div>
+
+      ${downloadedTracks.length ? `
+        <div class="detail-action-bar">
+          <button class="big-play-btn" onclick="App.playCollectionQueue(${safeJSON})" title="Play All Downloaded">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+        </div>
+        ${this.buildSongsTable(downloadedTracks)}
+      ` : `
+        <div style="padding: 60px 0; text-align: center; color: var(--text-secondary);">
+          <svg style="width: 64px; height: 64px; fill: none; stroke: currentColor; stroke-width: 1.5; margin-bottom: 16px; opacity: 0.5;" viewBox="0 0 24 24">
+            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+          </svg>
+          <h3 style="font-size: 1.3rem; color: var(--text-primary); margin-bottom: 8px;">No downloaded songs yet</h3>
+          <p style="font-size: 0.95rem;">Tap the download button on any song or menu to save it in the app and on your phone.</p>
+        </div>
+      `}
+    `;
+
+    this.mainView.innerHTML = html;
+  }
+
   // --- Local Files View ---
   renderLocalFilesView() {
     const localTracks = this.localFiles.getLocalTracks();
@@ -1648,8 +1692,18 @@ class AppController {
   downloadSong(song) {
     if (!song) return;
     const filename = `${song.title} - ${song.artist}.mp3`;
-    this.showToast(`Starting download: ${song.title}`);
+    this.showToast(`Downloading & saving to app: ${song.title}`);
 
+    // 1. Store in App Offline/Downloaded Collection
+    if (this.library) {
+      this.library.addDownloadedSong(song);
+      this.updateLibrarySidebar();
+      if (this.currentView === 'downloaded') {
+        this.renderDownloadedSongsView();
+      }
+    }
+
+    // 2. Download MP3 to mobile/computer storage
     if (song.audioUrl) {
       const a = document.createElement('a');
       a.href = `/api/download?url=${encodeURIComponent(song.audioUrl)}&filename=${encodeURIComponent(filename)}`;
@@ -1657,6 +1711,23 @@ class AppController {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+    } else if (song.id) {
+      // Resolve audio URL then download
+      fetch(`/api/song/${encodeURIComponent(song.id)}?quality=${this.player.quality}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.song?.audioUrl) {
+            song.audioUrl = data.song.audioUrl;
+            if (this.library) this.library.addDownloadedSong(song);
+            const a = document.createElement('a');
+            a.href = `/api/download?url=${encodeURIComponent(song.audioUrl)}&filename=${encodeURIComponent(filename)}`;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          }
+        })
+        .catch(e => console.warn('Download resolution error:', e));
     }
   }
 

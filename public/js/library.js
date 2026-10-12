@@ -41,7 +41,8 @@ class MusicLibrary {
         playbackPosition: 0,
         isShuffled: false,
         repeatMode: 'off'
-      }
+      },
+      downloadedSongs: []
     };
 
     this.initStore();
@@ -64,6 +65,7 @@ class MusicLibrary {
           if (!Array.isArray(this.state.playlists)) this.state.playlists = [];
           if (!Array.isArray(this.state.history)) this.state.history = [];
           if (!Array.isArray(this.state.recentSearches)) this.state.recentSearches = [];
+          if (!Array.isArray(this.state.downloadedSongs)) this.state.downloadedSongs = [];
           return;
         }
       }
@@ -176,6 +178,50 @@ class MusicLibrary {
 
   getLikedSongs() {
     return [...this.state.likedSongs];
+  }
+
+  // --- Downloaded Songs Collection (App Offline / Saved in App) ---
+  getDownloadedSongs() {
+    return [...(this.state.downloadedSongs || [])];
+  }
+
+  isDownloaded(songOrId) {
+    const id = this.getTrackId(songOrId);
+    if (!id) return false;
+    return (this.state.downloadedSongs || []).some(s => this.getTrackId(s) === id);
+  }
+
+  addDownloadedSong(song) {
+    if (!song) return;
+    if (!Array.isArray(this.state.downloadedSongs)) {
+      this.state.downloadedSongs = [];
+    }
+    const songId = this.getTrackId(song);
+    const existingIndex = this.state.downloadedSongs.findIndex(s => this.getTrackId(s) === songId);
+    const fullSong = {
+      id: song.id || songId,
+      title: song.title || 'Unknown Title',
+      artist: song.artist || 'Unknown Artist',
+      album: song.album || song.title || '',
+      duration: song.duration || 0,
+      image: song.image || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80',
+      audioUrl: song.audioUrl || '',
+      downloadedAt: Date.now()
+    };
+
+    if (existingIndex >= 0) {
+      this.state.downloadedSongs[existingIndex] = fullSong;
+    } else {
+      this.state.downloadedSongs.unshift(fullSong);
+    }
+    this.saveStore();
+  }
+
+  removeDownloadedSong(songOrId) {
+    const id = this.getTrackId(songOrId);
+    if (!id || !Array.isArray(this.state.downloadedSongs)) return;
+    this.state.downloadedSongs = this.state.downloadedSongs.filter(s => this.getTrackId(s) !== id);
+    this.saveStore();
   }
 
   // --- Custom Playlists ---
