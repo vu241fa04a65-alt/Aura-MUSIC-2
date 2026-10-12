@@ -466,7 +466,7 @@ class AudioPlayer {
     }
   }
 
-  playNext() {
+  async playNext() {
     if (this.queue.length === 0) return;
     if (this.queueIndex < this.queue.length - 1) {
       this.queueIndex++;
@@ -475,8 +475,47 @@ class AudioPlayer {
       this.queueIndex = 0;
       this.loadTrack(this.queue[0]);
     } else {
-      this.pause();
+      // Auto-select and play another related/similar song seamlessly (Radio Mode)
+      await this.autoPlayRelatedSong();
     }
+  }
+
+  async autoPlayRelatedSong() {
+    const cur = this.currentTrack;
+    if (!cur) {
+      this.pause();
+      return;
+    }
+
+    try {
+      if (window.App) window.App.showToast(`Autoplaying next track related to ${cur.title}...`);
+      const artistQuery = encodeURIComponent(cur.artist || '');
+      const titleQuery = encodeURIComponent(cur.title || '');
+      const resp = await fetch(`/api/similar?artist=${artistQuery}&title=${titleQuery}&quality=${this.quality}`);
+      const data = await resp.json();
+
+      if (data.success && Array.isArray(data.songs) && data.songs.length > 0) {
+        // Filter out songs already in the queue if possible
+        const existingIds = new Set(this.queue.map(t => t.id));
+        let nextSongs = data.songs.filter(s => !existingIds.has(s.id));
+        if (nextSongs.length === 0) nextSongs = data.songs;
+
+        const nextTrack = nextSongs[0];
+        if (nextTrack) {
+          // Append to queue and play
+          this.queue.push(nextTrack);
+          this.originalQueue.push(nextTrack);
+          this.queueIndex = this.queue.length - 1;
+          this.loadTrack(nextTrack, true);
+          if (window.App) window.App.renderQueue();
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('AutoPlay related song error:', e);
+    }
+
+    this.pause();
   }
 
   playPrevious() {
@@ -565,11 +604,6 @@ class AudioPlayer {
       this.isShuffled = !!saved.isShuffled;
       this.repeatMode = saved.repeatMode || 'off';
 
-      const trackToRestore = saved.currentTrack || this.queue[this.queueIndex];
-      if (trackToRestore) {
-        // Restore track and position WITHOUT unexpected autoplay
-        this.loadTrack(trackToRestore, false, saved.playbackPosition || 0);
-      }
       if (window.App) {
         window.App.renderQueue();
         if (window.App.shuffleBtn) window.App.shuffleBtn.classList.toggle('active', this.isShuffled);

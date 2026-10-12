@@ -155,7 +155,11 @@
     </main>
 
     <!-- BOTTOM SPOTIFY PLAYER BAR -->
-    <footer class="player-bar">
+    <footer class="player-bar" id="playerBar">
+      <!-- Mobile Mini Timeline (Top Edge of Player Bar) -->
+      <div class="mobile-player-timeline" id="mobilePlayerTimeline">
+        <div class="mobile-timeline-fill" id="mobileTimelineFill"></div>
+      </div>
       
       <!-- Track Info (Left) -->
       <div class="player-left">
@@ -439,17 +443,57 @@
     </div>
   </div>
 
-  <!-- FULLSCREEN PLAYER OVERLAY -->
+  <!-- FULLSCREEN PLAYER OVERLAY (Spotify Mobile Style) -->
   <div class="fullscreen-mode" id="fullscreenMode">
     <button class="icon-btn fullscreen-exit" id="fullscreenExitBtn" title="Exit Fullscreen">
-      <svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
     </button>
+    <div class="fullscreen-top-bar">
+      <div class="fs-header-subtitle">PLAYING FROM SEARCH / PLAYLIST</div>
+      <div class="fs-header-title">Now Playing</div>
+    </div>
     <img id="fsCover" class="fullscreen-cover" src="" alt="Album Artwork">
-    <h2 id="fsTitle" style="font-size: 2.2rem; font-weight: 800; margin-bottom: 6px;">Song Title</h2>
-    <p id="fsArtist" style="font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 24px;">Artist Name</p>
-    <button class="big-play-btn" id="fsPlayPauseBtn" onclick="window.player.togglePlay()">
-      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-    </button>
+    <div class="fullscreen-info-row">
+      <div class="fullscreen-meta">
+        <h2 id="fsTitle" class="fs-song-title">Song Title</h2>
+        <p id="fsArtist" class="fs-song-artist">Artist Name</p>
+      </div>
+      <button class="player-heart-btn fs-heart-btn" id="fsHeartBtn" title="Save Song">
+        <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      </button>
+    </div>
+
+    <!-- Fullscreen Timeline / Seek Bar -->
+    <div class="fs-playback-wrap">
+      <div class="progress-bar-container fs-progress-container" id="fsProgressContainer">
+        <div class="progress-bar-track fs-progress-track">
+          <div class="progress-bar-fill fs-progress-fill" id="fsProgressBarFill"></div>
+        </div>
+      </div>
+      <div class="fs-time-row">
+        <span class="fs-time-text" id="fsCurrentTime">0:00</span>
+        <span class="fs-time-text" id="fsTotalDuration">0:00</span>
+      </div>
+    </div>
+
+    <!-- Fullscreen Controls -->
+    <div class="fs-controls-row">
+      <button class="control-btn fs-btn" id="fsShuffleBtn" onclick="App.player.toggleShuffle()" title="Shuffle">
+        <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
+      </button>
+      <button class="control-btn fs-btn" id="fsPrevBtn" onclick="App.player.playPrevious()" title="Previous">
+        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
+      <button class="big-play-btn fs-main-play-btn" id="fsPlayPauseBtn" onclick="App.player.togglePlay()">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="control-btn fs-btn" id="fsNextBtn" onclick="App.player.playNext()" title="Next">
+        <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+      </button>
+      <button class="control-btn fs-btn" id="fsRepeatBtn" onclick="App.player.toggleRepeat()" title="Repeat">
+        <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+      </button>
+    </div>
   </div>
 
   <!-- TOAST CONTAINER -->

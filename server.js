@@ -739,6 +739,49 @@ app.get('/api/download', async (req, res) => {
   }
 });
 
+// 8. SIMILAR / RELATED SONGS API (AUTO-PLAY NEXT)
+app.get('/api/similar', async (req, res) => {
+  const { title, artist, language, quality = '320' } = req.query;
+  const query = (artist && artist !== 'Unknown Artist' && artist !== 'Aura Music') 
+    ? `${artist}` 
+    : (title || 'top songs');
+
+  const cacheKey = `similar_${encodeURIComponent(query)}_${quality}`;
+  const cached = getCached(cacheKey, 600000);
+  if (cached) return res.json(cached);
+
+  try {
+    const searchUrl = `https://www.jiosaavn.com/api.php?__call=search.getResults&_format=json&n=20&p=1&_marker=0&ctx=android&q=${encodeURIComponent(query)}`;
+    const sRes = await fetch(searchUrl);
+    const sData = await sRes.json();
+    const rawList = sData.results || [];
+    let songs = rawList.map(s => formatSong(s, quality)).filter(Boolean);
+
+    // Resolve audio URLs if needed
+    const needAudio = songs.filter(s => !s.audioUrl).slice(0, 15);
+    if (needAudio.length > 0) {
+      try {
+        const pids = needAudio.map(s => s.id).join(',');
+        const detailUrl = `https://www.jiosaavn.com/api.php?__call=song.getDetails&cc=in&_marker=0&_format=json&pids=${pids}`;
+        const dRes = await fetch(detailUrl);
+        const dData = await dRes.json();
+        songs.forEach(s => {
+          if (!s.audioUrl && dData[s.id]?.encrypted_media_url) {
+            s.audioUrl = decryptMediaUrl(dData[s.id].encrypted_media_url, quality);
+          }
+        });
+      } catch (err) {}
+    }
+
+    const validSongs = songs.filter(s => s.audioUrl);
+    const result = { success: true, songs: validSongs };
+    setCache(cacheKey, result);
+    return res.json(result);
+  } catch (err) {
+    return res.json({ success: false, songs: [] });
+  }
+});
+
 // Serve static frontend assets
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -747,7 +790,12 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`✨ Aura Music Server running on http://localhost:${PORT}`);
-  console.log('🎵 100% Ad-Free Master Streaming Engine Activated');
-});
+// Start server if not running serverless
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`✨ Aura Music Server running on http://localhost:${PORT}`);
+    console.log('🎵 100% Ad-Free Master Streaming Engine Activated');
+  });
+}
+
+export default app;

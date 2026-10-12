@@ -1677,35 +1677,214 @@ body {
 }
 
 /* Fullscreen Player Mode */
+/* Mobile Mini Timeline (Top Edge of Bottom Player Bar) */
+.mobile-player-timeline {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  z-index: 10;
+}
+
+.mobile-timeline-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent-green);
+  transition: width 0.1s linear;
+}
+
+.player-bar {
+  transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), opacity 0.25s ease;
+}
+
+.player-bar.has-track {
+  display: grid;
+}
+
 .fullscreen-mode {
   position: fixed;
   inset: 0;
-  background: #0d0d0d;
+  background: linear-gradient(180deg, #1c1c1c 0%, #0d0d0d 100%);
   z-index: 500;
   display: none;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
+  justify-content: space-between;
+  padding: 24px 20px 36px 20px;
+  overflow-y: auto;
 }
 
 .fullscreen-mode.active {
   display: flex;
 }
 
+.fullscreen-top-bar {
+  text-align: center;
+  padding-top: 10px;
+}
+
+.fs-header-subtitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.fs-header-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
 .fullscreen-cover {
-  width: 380px;
-  height: 380px;
+  width: min(82vw, 360px);
+  height: min(82vw, 360px);
   border-radius: var(--radius-lg);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
-  margin-bottom: 32px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+  margin: 20px auto;
   object-fit: cover;
+}
+
+.fullscreen-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto 12px auto;
+}
+
+.fullscreen-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.fs-song-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fs-song-artist {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 4px;
+}
+
+.fs-heart-btn {
+  width: 44px;
+  height: 44px;
+}
+
+/* Fullscreen Timeline / Seek Bar */
+.fs-playback-wrap {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.fs-progress-container {
+  width: 100%;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+}
+
+.fs-progress-track {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-full);
+  position: relative;
+  overflow: hidden;
+}
+
+.fs-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #ffffff;
+  border-radius: var(--radius-full);
+}
+
+.fs-time-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.fs-time-text {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fullscreen Playback Controls */
+.fs-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 420px;
+  margin: 8px auto 0 auto;
+}
+
+.fs-btn {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fs-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.fs-main-play-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.fs-main-play-btn:hover {
+  transform: scale(1.06);
+  background: var(--accent-green);
+}
+
+.fs-main-play-btn svg {
+  width: 30px;
+  height: 30px;
+  fill: #000000;
 }
 
 .fullscreen-exit {
   position: absolute;
-  top: 24px;
-  right: 24px;
+  top: 20px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  z-index: 10;
 }
 
 /* ==========================================================================
@@ -2111,16 +2290,27 @@ body {
   .player-bar {
     cursor: pointer;
     padding: 0 12px;
-    height: 68px;
-    bottom: 58px; /* sits above mobile bottom nav */
+    height: 64px;
+    position: relative;
+    grid-template-columns: 1fr auto;
+  }
+
+  .mobile-player-timeline {
+    display: block;
   }
 
   .player-track-info {
-    max-width: 130px;
+    max-width: 140px;
   }
 
   .player-center {
-    flex: 0 0 auto;
+    display: none;
+  }
+
+  .player-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   .playback-bar-wrap,
@@ -2138,7 +2328,7 @@ body {
   }
 
   .mobile-bottom-nav {
-    height: 58px;
+    height: 56px;
     z-index: 100;
   }
 }

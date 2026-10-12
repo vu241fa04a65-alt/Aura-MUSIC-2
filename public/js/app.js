@@ -131,17 +131,45 @@ class AppController {
       this.showToast(`Repeat: ${mode.toUpperCase()}`);
     });
 
-    // Progress Bar Seeking
+    // Progress Bar Seeking (Mouse + Touch Support for APK/Mobile)
     let isSeeking = false;
-    this.progressBarContainer?.addEventListener('mousedown', (e) => {
-      isSeeking = true;
-      this.handleSeekEvent(e);
-    });
+    const addSeekListeners = (containerEl) => {
+      if (!containerEl) return;
+      containerEl.addEventListener('mousedown', (e) => {
+        isSeeking = true;
+        this.handleSeekEvent(e, containerEl);
+      });
+      containerEl.addEventListener('touchstart', (e) => {
+        isSeeking = true;
+        this.handleSeekEvent(e.touches[0], containerEl);
+      }, { passive: true });
+    };
+
+    addSeekListeners(this.progressBarContainer);
+    addSeekListeners(document.getElementById('mobilePlayerTimeline'));
+    addSeekListeners(document.getElementById('fsProgressContainer'));
+
     window.addEventListener('mousemove', (e) => {
       if (isSeeking) this.handleSeekEvent(e);
     });
-    window.addEventListener('mouseup', () => {
-      isSeeking = false;
+    window.addEventListener('touchmove', (e) => {
+      if (isSeeking && e.touches[0]) this.handleSeekEvent(e.touches[0]);
+    }, { passive: true });
+
+    window.addEventListener('mouseup', () => { isSeeking = false; });
+    window.addEventListener('touchend', () => { isSeeking = false; });
+
+    // Tap on mobile player bar track info opens Fullscreen Player (Spotify behavior)
+    document.querySelector('.player-left')?.addEventListener('click', (e) => {
+      // Don't trigger if tapping on heart or action buttons
+      if (e.target.closest('button')) return;
+      if (window.innerWidth <= 768 && this.player.currentTrack) {
+        this.toggleFullscreen(true);
+      }
+    });
+
+    document.getElementById('fullscreenExitBtn')?.addEventListener('click', () => {
+      this.toggleFullscreen(false);
     });
 
     // Volume Slider
@@ -363,10 +391,13 @@ class AppController {
     });
   }
 
-  handleSeekEvent(e) {
-    if (!this.progressBarContainer) return;
-    const rect = this.progressBarContainer.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  handleSeekEvent(e, targetEl = null) {
+    const container = targetEl || this.activeSeekContainer || this.progressBarContainer;
+    if (!container) return;
+    this.activeSeekContainer = container;
+    const rect = container.getBoundingClientRect();
+    const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     this.player.seek(ratio);
   }
 
@@ -1488,18 +1519,24 @@ class AppController {
     if (this.totalDurationEl && duration > 0) {
       this.totalDurationEl.textContent = this.formatDuration(duration);
     }
-    if (this.progressBarFill && duration > 0) {
+    if (duration > 0) {
       const pct = (currentTime / duration) * 100;
-      this.progressBarFill.style.width = pct + '%';
+      if (this.progressBarFill) this.progressBarFill.style.width = pct + '%';
+      
+      // Sync mobile mini timeline on top of bottom player bar
+      const mobileFill = document.getElementById('mobileTimelineFill');
+      if (mobileFill) mobileFill.style.width = pct + '%';
+
+      // Sync fullscreen progress bar
+      const fsFill = document.getElementById('fsProgressBarFill');
+      if (fsFill) fsFill.style.width = pct + '%';
     }
 
-    // Sync fullscreen progress bar if present
-    const fsFill = document.getElementById('fsProgressBarFill');
-    if (fsFill && duration > 0) {
-      fsFill.style.width = (currentTime / duration) * 100 + '%';
-    }
     const fsCur = document.getElementById('fsCurrentTime');
     if (fsCur) fsCur.textContent = this.formatDuration(currentTime);
+
+    const fsDur = document.getElementById('fsTotalDuration');
+    if (fsDur && duration > 0) fsDur.textContent = this.formatDuration(duration);
   }
 
   updateVolumeUI(vol) {
@@ -1513,6 +1550,8 @@ class AppController {
     const titleEl = document.getElementById('playerTrackTitle');
     const artistEl = document.getElementById('playerTrackArtist');
     const thumbEl = document.getElementById('playerThumb');
+    const playerBar = document.getElementById('playerBar');
+    if (playerBar) playerBar.classList.add('has-track');
 
     if (titleEl) titleEl.textContent = track.title;
     if (artistEl) artistEl.textContent = track.artist;
