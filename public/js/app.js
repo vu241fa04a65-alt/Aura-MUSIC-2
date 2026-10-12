@@ -160,13 +160,26 @@ class AppController {
     window.addEventListener('touchend', () => { isSeeking = false; });
 
     // Tap on mobile player bar track info opens Fullscreen Player (Spotify behavior)
-    document.querySelector('.player-left')?.addEventListener('click', (e) => {
-      // Don't trigger if tapping on heart or action buttons
-      if (e.target.closest('button')) return;
+    const playerLeftEl = document.querySelector('.player-left');
+    playerLeftEl?.addEventListener('click', (e) => {
+      // Never trigger if tapping on heart or action buttons
+      if (e.target.closest('button') || e.target.closest('.player-action-sub-btn') || e.target.closest('.player-heart-btn')) {
+        return;
+      }
       if (window.innerWidth <= 768 && this.player.currentTrack) {
         this.toggleFullscreen(true);
       }
     });
+
+    // Touch event isolation for player action buttons
+    const isolatePlayerBtn = (btn) => {
+      if (!btn) return;
+      btn.addEventListener('pointerdown', (e) => e.stopPropagation());
+      btn.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
+    };
+    isolatePlayerBtn(this.playerHeartBtn);
+    isolatePlayerBtn(document.getElementById('playerBarDownloadBtn'));
+    isolatePlayerBtn(document.getElementById('playerBarMenuBtn'));
 
     document.getElementById('fullscreenExitBtn')?.addEventListener('click', () => {
       this.toggleFullscreen(false);
@@ -348,12 +361,6 @@ class AppController {
       this.toggleFullscreen(false);
     });
 
-    // Mini-player mobile tap to expand
-    document.querySelector('.player-left')?.addEventListener('click', (e) => {
-      if (window.innerWidth <= 768 && !e.target.closest('#playerHeartBtn')) {
-        this.toggleFullscreen(true);
-      }
-    });
 
     // Download button in player
     document.getElementById('downloadTrackBtn')?.addEventListener('click', () => {
@@ -1367,81 +1374,90 @@ class AppController {
     const currentTrackId = this.library.getTrackId(this.player.currentTrack);
 
     return `
-      <table class="songs-table">
-        <thead>
-          <tr>
-            <th class="col-num">#</th>
-            <th>Title</th>
-            <th>Album</th>
-            <th class="col-dur">Duration</th>
-            <th class="col-actions"></th>
-          </tr>
-        </thead>
-        <tbody>
-          ${songs.map((song, idx) => {
-            const trackId = this.library.getTrackId(song);
-            const isPlayingThis = (trackId === currentTrackId && this.player.isPlaying);
-            const isLiked = this.library.isLiked(trackId);
-            const dur = this.formatDuration(song.duration);
-            const songJSON = JSON.stringify(song).replace(/"/g, '&quot;');
+      <div class="songs-table-wrap">
+        <table class="songs-table">
+          <thead>
+            <tr>
+              <th class="col-num">#</th>
+              <th class="col-title">Title</th>
+              <th class="col-album">Album</th>
+              <th class="col-dur">Duration</th>
+              <th class="col-actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${songs.map((song, idx) => {
+              const trackId = this.library.getTrackId(song);
+              const isPlayingThis = (trackId === currentTrackId && this.player.isPlaying);
+              const isLiked = this.library.isLiked(trackId);
+              const dur = this.formatDuration(song.duration);
+              const songJSON = JSON.stringify(song).replace(/"/g, '&quot;');
 
-            return `
-              <tr class="song-row ${trackId === currentTrackId ? 'playing' : ''}" onclick="App.playTrackFromList(${songJSON}, ${idx})">
-                <td class="song-cell-num">
-                  ${isPlayingThis ? `
-                    <div class="playing-bars">
-                      <span></span><span></span><span></span><span></span>
+              return `
+                <tr class="song-row ${trackId === currentTrackId ? 'playing' : ''}" onclick="App.onSongRowClick(event, ${songJSON}, ${idx})">
+                  <td class="song-cell-num">
+                    ${isPlayingThis ? `
+                      <div class="playing-bars">
+                        <span></span><span></span><span></span><span></span>
+                      </div>
+                    ` : `
+                      <span class="song-num-text">${idx + 1}</span>
+                      <button class="song-row-play-btn" type="button">
+                        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                      </button>
+                    `}
+                  </td>
+                  <td class="song-cell-info">
+                    <img class="song-cell-thumb" src="${song.image}" alt="${song.title}" loading="lazy">
+                    <div class="song-cell-details">
+                      <div class="song-cell-title">${song.title}</div>
+                      <div class="song-cell-artist">${song.artist}${song.starring ? ` &bull; <span style="opacity: 0.75;">${song.starring}</span>` : ''}</div>
                     </div>
-                  ` : `
-                    <span class="song-num-text">${idx + 1}</span>
-                    <button class="song-row-play-btn">
-                      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  </td>
+                  <td class="song-cell-album">${song.album || '-'}</td>
+                  <td class="song-cell-dur">${dur}</td>
+                  <td class="song-cell-actions">
+                    <!-- Like Heart Button -->
+                    <button type="button" class="song-action-btn heart-btn ${isLiked ? 'liked' : ''}" data-track-id="${trackId}" onclick="event.stopPropagation(); App.openSavedInModal(${songJSON})" onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" title="${isLiked ? 'Saved in Liked Songs' : 'Save Song'}">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                      </svg>
                     </button>
-                  `}
-                </td>
-                <td class="song-cell-info">
-                  <img class="song-cell-thumb" src="${song.image}" alt="${song.title}" loading="lazy">
-                  <div class="song-cell-details">
-                    <div class="song-cell-title">${song.title}</div>
-                    <div class="song-cell-artist">${song.artist}${song.starring ? ` &bull; <span style="opacity: 0.75;">${song.starring}</span>` : ''}</div>
-                  </div>
-                </td>
-                <td class="song-cell-album">${song.album || '-'}</td>
-                <td class="song-cell-dur">${dur}</td>
-                <td class="song-cell-actions">
-                  <!-- Like Heart Button (Outlined default, Red when liked; opens Spotify-style Saved in modal) -->
-                  <button class="song-action-btn heart-btn ${isLiked ? 'liked' : ''}" data-track-id="${trackId}" onclick="event.stopPropagation(); App.openSavedInModal(${songJSON})" title="${isLiked ? 'Saved in Liked Songs' : 'Save Song'}">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                    </svg>
-                  </button>
 
-                  <!-- Download MP3 Button (beside heart) -->
-                  <button class="song-action-btn" onclick="event.stopPropagation(); App.downloadSong(${songJSON})" title="Download MP3">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
-                    </svg>
-                  </button>
-
-                  <!-- Three Dots Menu Button (opens Spotify action sheet: Share, Add to playlist, Add to Queue, Go to Queue) -->
-                  <button class="song-action-btn" onclick="event.stopPropagation(); App.openSongMenu(${songJSON})" title="More Options">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-                    </svg>
-                  </button>
-
-                  ${playlistId ? `
-                    <button class="song-action-btn" onclick="event.stopPropagation(); App.removeSongFromCustomPlaylist('${playlistId}', '${trackId}')" title="Remove from playlist">
-                      <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                    <!-- Download MP3 Button (Available on desktop; also in 3-dots sheet on mobile) -->
+                    <button type="button" class="song-action-btn song-download-btn" onclick="event.stopPropagation(); App.downloadSong(${songJSON})" onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" title="Download MP3">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+                      </svg>
                     </button>
-                  ` : ''}
-                </td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
+
+                    <!-- Three Dots Menu Button -->
+                    <button type="button" class="song-action-btn song-menu-trigger-btn" onclick="event.stopPropagation(); App.openSongMenu(${songJSON})" onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" title="More Options">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                      </svg>
+                    </button>
+
+                    ${playlistId ? `
+                      <button type="button" class="song-action-btn" onclick="event.stopPropagation(); App.removeSongFromCustomPlaylist('${playlistId}', '${trackId}')" onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" title="Remove from playlist">
+                        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                      </button>
+                    ` : ''}
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
     `;
+  }
+
+  onSongRowClick(event, song, index) {
+    if (event.target.closest('button') || event.target.closest('.song-cell-actions') || event.target.closest('.song-action-btn')) {
+      return;
+    }
+    this.playTrackFromList(song, index);
   }
 
   removeSongFromCustomPlaylist(playlistId, trackId) {
