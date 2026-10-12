@@ -1165,12 +1165,17 @@ body {
   grid-area: player;
   background-color: #000000;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  display: grid;
+  display: none;
   grid-template-columns: 280px 1fr 280px;
   align-items: center;
   padding: 0 16px;
   height: var(--player-height);
   z-index: 100;
+  transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), opacity 0.25s ease;
+}
+
+.player-bar.has-track {
+  display: grid;
 }
 
 /* Player Left: Current Track Info */
@@ -2292,7 +2297,12 @@ body {
     padding: 0 12px;
     height: 64px;
     position: relative;
+    display: none;
     grid-template-columns: 1fr auto;
+  }
+
+  .player-bar.has-track {
+    display: grid;
   }
 
   .mobile-player-timeline {
