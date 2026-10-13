@@ -366,6 +366,7 @@ class AudioPlayer {
       }
     }
     this.savePlaybackStateNow();
+    if (window.App) window.App.updateShuffleUI(this.isShuffled);
     return this.isShuffled;
   }
 
@@ -378,6 +379,7 @@ class AudioPlayer {
       this.repeatMode = 'off';
     }
     this.savePlaybackStateNow();
+    if (window.App) window.App.updateRepeatUI(this.repeatMode);
     return this.repeatMode;
   }
 
@@ -393,6 +395,17 @@ class AudioPlayer {
     }
 
     let streamUrl = track.audioUrl;
+
+    // Check if song has cached offline audio in app
+    if (window.Library) {
+      try {
+        const cachedBlobUrl = await window.Library.getCachedAudioBlobUrl(track);
+        if (cachedBlobUrl) {
+          streamUrl = cachedBlobUrl;
+        }
+      } catch (e) {}
+    }
+
     // If not direct URL, resolve via API
     if (!streamUrl && track.id) {
       try {

@@ -215,6 +215,45 @@ class MusicLibrary {
       this.state.downloadedSongs.unshift(fullSong);
     }
     this.saveStore();
+
+    if (fullSong.audioUrl) {
+      this.cacheSongAudio(fullSong, fullSong.audioUrl);
+    }
+  }
+
+  async cacheSongAudio(song, audioUrl) {
+    if (!song || !audioUrl || !('caches' in window)) return;
+    try {
+      const cache = await caches.open('aura-offline-audio-v1');
+      const songId = this.getTrackId(song);
+      const cacheKey = new Request(`/offline-audio/${encodeURIComponent(songId)}`);
+      const matched = await cache.match(cacheKey);
+      if (!matched) {
+        const resp = await fetch(audioUrl, { mode: 'cors' });
+        if (resp.ok) {
+          await cache.put(cacheKey, resp);
+        }
+      }
+    } catch (e) {
+      console.warn('In-app offline cache note:', e.message);
+    }
+  }
+
+  async getCachedAudioBlobUrl(song) {
+    if (!song || !('caches' in window)) return null;
+    try {
+      const cache = await caches.open('aura-offline-audio-v1');
+      const songId = this.getTrackId(song);
+      const cacheKey = new Request(`/offline-audio/${encodeURIComponent(songId)}`);
+      const matched = await cache.match(cacheKey);
+      if (matched) {
+        const blob = await matched.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch (e) {
+      console.warn('Cache lookup note:', e);
+    }
+    return null;
   }
 
   removeDownloadedSong(songOrId) {
@@ -222,6 +261,11 @@ class MusicLibrary {
     if (!id || !Array.isArray(this.state.downloadedSongs)) return;
     this.state.downloadedSongs = this.state.downloadedSongs.filter(s => this.getTrackId(s) !== id);
     this.saveStore();
+    if ('caches' in window) {
+      caches.open('aura-offline-audio-v1').then(cache => {
+        cache.delete(new Request(`/offline-audio/${encodeURIComponent(id)}`));
+      }).catch(() => {});
+    }
   }
 
   // --- Custom Playlists ---

@@ -26,6 +26,8 @@ class AppController {
 
     this.initDOM();
     this.bindEvents();
+    this.updateShuffleUI(this.player.isShuffled);
+    this.updateRepeatUI(this.player.repeatMode);
     this.initKeyboardShortcuts();
     this.loadHomeData();
     this.updateLibrarySidebar();
@@ -119,16 +121,60 @@ class AppController {
     this.playPauseBtn?.addEventListener('click', () => this.player.togglePlay());
     this.prevBtn?.addEventListener('click', () => this.player.playPrevious());
     this.nextBtn?.addEventListener('click', () => this.player.playNext());
-    this.shuffleBtn?.addEventListener('click', () => {
-      const active = this.player.toggleShuffle();
-      this.shuffleBtn.classList.toggle('active', active);
-      this.showToast(active ? 'Shuffle On' : 'Shuffle Off');
+    this.shuffleBtn?.addEventListener('click', () => this.toggleShuffle());
+    this.repeatBtn?.addEventListener('click', () => this.toggleRepeat());
+
+    // Fullscreen controls
+    document.getElementById('fsShuffleBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleShuffle();
     });
-    this.repeatBtn?.addEventListener('click', () => {
-      const mode = this.player.toggleRepeat();
-      this.repeatBtn.classList.toggle('active', mode !== 'off');
-      this.repeatBtn.title = `Repeat: ${mode.toUpperCase()}`;
-      this.showToast(`Repeat: ${mode.toUpperCase()}`);
+    document.getElementById('fsRepeatBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleRepeat();
+    });
+    document.getElementById('fsPrevBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.player.playPrevious();
+    });
+    document.getElementById('fsNextBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.player.playNext();
+    });
+    document.getElementById('fsPlayPauseBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.player.togglePlay();
+    });
+    document.getElementById('fsHeartBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.player.currentTrack) {
+        this.toggleSongLike(this.player.currentTrack);
+      } else {
+        this.showToast('No song is currently playing');
+      }
+    });
+    document.getElementById('fsDownloadBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (this.player.currentTrack) {
+        this.openDownloadModal(this.player.currentTrack);
+      } else {
+        this.showToast('No song is currently playing');
+      }
+    });
+
+    // Download Options Modal handlers
+    document.getElementById('dlOptionNormalBtn')?.addEventListener('click', () => {
+      this.downloadInApp(this.selectedDownloadSong);
+    });
+    document.getElementById('dlOptionLocalBtn')?.addEventListener('click', () => {
+      this.downloadToLocalDevice(this.selectedDownloadSong);
+    });
+    document.getElementById('closeDownloadOptionsModal')?.addEventListener('click', () => {
+      this.closeDownloadModal();
+    });
+    const dlModalBackdrop = document.getElementById('downloadOptionsModal');
+    dlModalBackdrop?.addEventListener('click', (e) => {
+      if (e.target === dlModalBackdrop) this.closeDownloadModal();
     });
 
     // Progress Bar Seeking (Mouse + Touch Support for APK/Mobile)
@@ -180,6 +226,8 @@ class AppController {
     isolatePlayerBtn(this.playerHeartBtn);
     isolatePlayerBtn(document.getElementById('playerBarDownloadBtn'));
     isolatePlayerBtn(document.getElementById('playerBarMenuBtn'));
+    isolatePlayerBtn(document.getElementById('fsHeartBtn'));
+    isolatePlayerBtn(document.getElementById('fsDownloadBtn'));
 
     document.getElementById('fullscreenExitBtn')?.addEventListener('click', () => {
       this.toggleFullscreen(false);
@@ -211,7 +259,7 @@ class AppController {
     // Download in Player bar
     document.getElementById('playerBarDownloadBtn')?.addEventListener('click', () => {
       if (this.player.currentTrack) {
-        this.downloadSong(this.player.currentTrack);
+        this.openDownloadModal(this.player.currentTrack);
       } else {
         this.showToast('No song is currently playing');
       }
@@ -887,14 +935,14 @@ class AppController {
         ${topSong ? `
           <div>
             <h2 class="section-title" style="margin-bottom: 12px;">Top Result</h2>
-            <div class="top-result-card" onclick="App.playTrack(${JSON.stringify(topSong).replace(/"/g, '&quot;')})">
+            <div class="top-result-card" onclick="App.playSearchResultTopSong()">
               <img class="top-result-art" src="${topSong.image}" alt="${topSong.title}">
               <div class="top-result-title">${topSong.title}</div>
               <div class="top-result-meta">
-                <span class="top-result-badge">Song</span>
+                <span class="top-result-badge">Official Song</span>
                 <span>${topSong.artist}</span>
               </div>
-              <button class="card-play-btn" onclick="event.stopPropagation(); App.playTrack(${JSON.stringify(topSong).replace(/"/g, '&quot;')})">
+              <button class="card-play-btn" onclick="event.stopPropagation(); App.playSearchResultTopSong()">
                 <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
               </button>
             </div>
@@ -1371,6 +1419,7 @@ class AppController {
       return '<p style="color: var(--text-secondary); padding: 12px;">No songs in this list.</p>';
     }
 
+    this.currentTableSongs = songs;
     const currentTrackId = this.library.getTrackId(this.player.currentTrack);
 
     return `
@@ -1424,8 +1473,8 @@ class AppController {
                       </svg>
                     </button>
 
-                    <!-- Download MP3 Button (Available on desktop; also in 3-dots sheet on mobile) -->
-                    <button type="button" class="song-action-btn song-download-btn" onclick="event.stopPropagation(); App.downloadSong(${songJSON})" onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" title="Download MP3">
+                    <!-- Download Options Button -->
+                    <button type="button" class="song-action-btn song-download-btn" onclick="event.stopPropagation(); App.openDownloadModal(${songJSON})" onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" title="Download Song">
                       <svg viewBox="0 0 24 24">
                         <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
                       </svg>
@@ -1467,11 +1516,32 @@ class AppController {
   }
 
   playTrackFromList(song, index) {
-    this.player.loadTrack(song);
+    if (Array.isArray(this.currentTableSongs) && this.currentTableSongs.length > 0) {
+      this.player.setQueue(this.currentTableSongs, index);
+    } else {
+      this.player.setQueue([song], 0);
+    }
   }
 
   playTrack(song) {
-    this.player.loadTrack(song);
+    if (Array.isArray(this.currentTableSongs) && this.currentTableSongs.length > 0) {
+      const idx = this.currentTableSongs.findIndex(s => this.library.getTrackId(s) === this.library.getTrackId(song));
+      if (idx >= 0) {
+        this.player.setQueue(this.currentTableSongs, idx);
+        return;
+      }
+    }
+    this.player.setQueue([song], 0);
+  }
+
+  playSearchResultTopSong() {
+    const songs = this.lastSearchResults?.songs || [];
+    if (songs.length > 0) {
+      this.currentTableSongs = songs;
+      this.player.setQueue(songs, 0);
+    } else if (this.lastSearchResults?.songs?.[0]) {
+      this.player.loadTrack(this.lastSearchResults.songs[0]);
+    }
   }
 
   // --- Like / Favourite Button Logic (Synchronized Globally) ---
@@ -1617,9 +1687,16 @@ class AppController {
     if (artistEl) artistEl.textContent = track.artist;
     if (thumbEl && track.image) thumbEl.src = track.image;
 
-    // Like button state in player
+    // Like button state in player bar & fullscreen
     const isLiked = this.library.isLiked(track);
     this.playerHeartBtn?.classList.toggle('liked', isLiked);
+    if (this.playerHeartBtn) this.playerHeartBtn.title = isLiked ? 'Remove from Liked' : 'Save Song';
+
+    const fsHeartBtn = document.getElementById('fsHeartBtn');
+    if (fsHeartBtn) {
+      fsHeartBtn.classList.toggle('liked', isLiked);
+      fsHeartBtn.title = isLiked ? 'Remove from Liked' : 'Save Song';
+    }
 
     // Fullscreen view elements
     const fsCover = document.getElementById('fsCover');
@@ -1698,17 +1775,38 @@ class AppController {
     `).join('');
   }
 
-  // --- Downloads ---
+  // --- Downloads (Two Options: In-App Spotify Style vs Local Device) ---
   downloadCurrentTrack() {
     if (this.player.currentTrack) {
-      this.downloadSong(this.player.currentTrack);
+      this.openDownloadModal(this.player.currentTrack);
     }
   }
 
-  downloadSong(song) {
+  openDownloadModal(song) {
     if (!song) return;
-    const filename = `${song.title} - ${song.artist}.mp3`;
-    this.showToast(`Downloading & saving to app: ${song.title}`);
+    this.selectedDownloadSong = song;
+    const modal = document.getElementById('downloadOptionsModal');
+    if (!modal) return;
+
+    const imgEl = document.getElementById('dlModalTrackImg');
+    const titleEl = document.getElementById('dlModalTrackTitle');
+    const artistEl = document.getElementById('dlModalTrackArtist');
+
+    if (imgEl) imgEl.src = song.image || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80';
+    if (titleEl) titleEl.textContent = song.title || 'Unknown Title';
+    if (artistEl) artistEl.textContent = song.artist || 'Unknown Artist';
+
+    modal.classList.add('open');
+  }
+
+  closeDownloadModal() {
+    document.getElementById('downloadOptionsModal')?.classList.remove('open');
+  }
+
+  downloadInApp(song) {
+    if (!song) return;
+    this.closeDownloadModal();
+    this.showToast(`Saving to App: "${song.title}"`);
 
     // 1. Store in App Offline/Downloaded Collection
     if (this.library) {
@@ -1719,31 +1817,95 @@ class AppController {
       }
     }
 
-    // 2. Download MP3 to mobile/computer storage
+    // 2. Cache audio stream for offline listening if URL available or resolve it
     if (song.audioUrl) {
-      const a = document.createElement('a');
-      a.href = `/api/download?url=${encodeURIComponent(song.audioUrl)}&filename=${encodeURIComponent(filename)}`;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      this.library?.cacheSongAudio(song, song.audioUrl);
+      this.showToast(`✓ Downloaded to App (Offline Ready)!`);
     } else if (song.id) {
-      // Resolve audio URL then download
       fetch(`/api/song/${encodeURIComponent(song.id)}?quality=${this.player.quality}`)
         .then(r => r.json())
         .then(data => {
           if (data.success && data.song?.audioUrl) {
             song.audioUrl = data.song.audioUrl;
-            if (this.library) this.library.addDownloadedSong(song);
-            const a = document.createElement('a');
-            a.href = `/api/download?url=${encodeURIComponent(song.audioUrl)}&filename=${encodeURIComponent(filename)}`;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            this.library?.addDownloadedSong(song);
+            this.library?.cacheSongAudio(song, song.audioUrl);
+            this.showToast(`✓ Downloaded to App (Offline Ready)!`);
+          } else {
+            this.showToast(`✓ Saved to App Library`);
           }
         })
-        .catch(e => console.warn('Download resolution error:', e));
+        .catch(() => this.showToast(`✓ Saved to App Library`));
+    }
+  }
+
+  downloadToLocalDevice(song) {
+    if (!song) return;
+    this.closeDownloadModal();
+    const filename = `${song.title} - ${song.artist}.mp3`;
+    this.showToast(`Downloading to device: "${song.title}"`);
+
+    const triggerFileDownload = (url) => {
+      const a = document.createElement('a');
+      a.href = `/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(filename)}`;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
+
+    if (song.audioUrl) {
+      triggerFileDownload(song.audioUrl);
+    } else if (song.id) {
+      fetch(`/api/song/${encodeURIComponent(song.id)}?quality=${this.player.quality}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.song?.audioUrl) {
+            song.audioUrl = data.song.audioUrl;
+            triggerFileDownload(song.audioUrl);
+          } else {
+            this.showToast('Could not resolve download audio stream', 'error');
+          }
+        })
+        .catch(e => {
+          console.warn('Local download resolution error:', e);
+          this.showToast('Download error', 'error');
+        });
+    }
+  }
+
+  downloadSong(song) {
+    this.openDownloadModal(song);
+  }
+
+  // --- Unified Playback Controls & State Sync ---
+  toggleShuffle() {
+    const active = this.player.toggleShuffle();
+    this.updateShuffleUI(active);
+    this.showToast(active ? 'Shuffle On' : 'Shuffle Off');
+    return active;
+  }
+
+  updateShuffleUI(active) {
+    this.shuffleBtn?.classList.toggle('active', !!active);
+    const fsShuffle = document.getElementById('fsShuffleBtn');
+    if (fsShuffle) fsShuffle.classList.toggle('active', !!active);
+  }
+
+  toggleRepeat() {
+    const mode = this.player.toggleRepeat();
+    this.updateRepeatUI(mode);
+    this.showToast(`Repeat: ${mode.toUpperCase()}`);
+    return mode;
+  }
+
+  updateRepeatUI(mode) {
+    const active = mode !== 'off';
+    this.repeatBtn?.classList.toggle('active', active);
+    if (this.repeatBtn) this.repeatBtn.title = `Repeat: ${mode.toUpperCase()}`;
+    const fsRepeat = document.getElementById('fsRepeatBtn');
+    if (fsRepeat) {
+      fsRepeat.classList.toggle('active', active);
+      fsRepeat.title = `Repeat: ${mode.toUpperCase()}`;
     }
   }
 
@@ -1753,6 +1915,14 @@ class AppController {
     this.fullscreenOverlay.classList.toggle('active', shouldOpen);
     if (shouldOpen && this.player.currentTrack) {
       this.onTrackChange(this.player.currentTrack);
+      const isLiked = this.library.isLiked(this.player.currentTrack);
+      const fsHeartBtn = document.getElementById('fsHeartBtn');
+      if (fsHeartBtn) {
+        fsHeartBtn.classList.toggle('liked', isLiked);
+        fsHeartBtn.title = isLiked ? 'Remove from Liked' : 'Save Song';
+      }
+      this.updateShuffleUI(this.player.isShuffled);
+      this.updateRepeatUI(this.player.repeatMode);
     }
   }
 
@@ -1828,7 +1998,7 @@ class AppController {
     if (downloadBtn) {
       downloadBtn.onclick = () => {
         this.closeSongMenu();
-        this.downloadSong(song);
+        this.openDownloadModal(song);
       };
     }
 

@@ -352,36 +352,103 @@ app.get('/api/search', async (req, res) => {
     const autoSongIds = (autoRes.songs?.data || []).map(s => s.id).filter(Boolean);
     autoSongIds.slice(0, 8).forEach(pid => extraPids.add(pid));
 
-    // If we have extra pids from movie/actor/artist, fetch and prepend or merge them!
+    let extraSongs = [];
     if (extraPids.size > 0) {
       try {
         const pidList = Array.from(extraPids).slice(0, 16).join(',');
         const pidsDetailUrl = `https://www.jiosaavn.com/api.php?__call=song.getDetails&cc=in&_marker=0&_format=json&pids=${encodeURIComponent(pidList)}`;
         const pidsRes = await fetch(pidsDetailUrl);
         const pidsData = await pidsRes.json();
-        const extraSongs = Object.values(pidsData).map(raw => formatSong(raw, quality)).filter(Boolean);
-
-        // Prepend movie/actor exact songs to results while deduplicating
-        const existingIds = new Set(songs.map(s => s.id));
-        const uniqueExtra = extraSongs.filter(s => !existingIds.has(s.id));
-        songs = [...uniqueExtra, ...songs];
+        extraSongs = Object.values(pidsData).map(raw => formatSong(raw, quality)).filter(Boolean);
       } catch (err) {
         console.warn('Extra pids resolution note:', err.message);
       }
     }
 
-    // If language filter is specified, prioritize exact matching language
-    if (language && language !== 'all') {
-      const matchLang = (l) => (l || '').toLowerCase().includes(language) || 
-        (language === 'korean' && (l || '').toLowerCase().includes('korean')) ||
-        (language === 'chinese' && (l || '').toLowerCase().includes('chinese'));
-      
-      const exactLang = songs.filter(s => matchLang(s.language));
-      const otherLang = songs.filter(s => !matchLang(s.language));
-      if (exactLang.length > 0) {
-        songs = [...exactLang, ...otherLang];
+    // Combine direct search results, autocomplete songs, and movie-related tracks
+    const allCandidatesMap = new Map();
+    // Direct search songs
+    songs.forEach(s => allCandidatesMap.set(s.id, s));
+    // Movie album / autocomplete songs
+    extraSongs.forEach(s => {
+      if (!allCandidatesMap.has(s.id)) {
+        allCandidatesMap.set(s.id, s);
       }
+    });
+
+    let combinedSongs = Array.from(allCandidatesMap.values());
+
+    // Intelligent relevance scoring: Put exact and official title match on top,
+    // and movie-related songs right beneath it!
+    function scoreRelevance(song, q, lang) {
+      if (!song) return -1000;
+      const cleanQ = (q || '').trim().toLowerCase();
+      if (!cleanQ) return 0;
+
+      const title = (song.title || '').trim().toLowerCase();
+      const album = (song.album || '').trim().toLowerCase();
+      const artist = (song.artist || '').trim().toLowerCase();
+
+      let score = 0;
+
+      // Clean title without bracket additions for exact comparison
+      const pureTitle = title.replace(/\s*\([^)]*\)/g, '').replace(/\s*-\s*.*/g, '').trim();
+
+      // 1. Exact Title Match (e.g. searching "Sher" and title is "Sher")
+      if (pureTitle === cleanQ || title === cleanQ) {
+        score += 2000;
+      } else if (pureTitle.startsWith(cleanQ + ' ') || pureTitle.endsWith(' ' + cleanQ)) {
+        score += 1500;
+      } else {
+        const wordRegex = new RegExp(`(^|\\s|[^a-z0-9])${cleanQ.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|\\s|[^a-z0-9])`, 'i');
+        if (wordRegex.test(pureTitle) || wordRegex.test(title)) {
+          score += 1100;
+        } else if (pureTitle.startsWith(cleanQ) || title.startsWith(cleanQ)) {
+          score += 900;
+        } else if (pureTitle.includes(cleanQ) || title.includes(cleanQ)) {
+          score += 600;
+        }
+      }
+
+      // 2. Official release vs Cover/Derivative penalties
+      if (!cleanQ.includes('cover') && (title.includes('cover') || artist.includes('cover'))) {
+        score -= 400;
+      }
+      if (!cleanQ.includes('karaoke') && (title.includes('karaoke') || album.includes('karaoke'))) {
+        score -= 500;
+      }
+      if (!cleanQ.includes('remix') && (title.includes('remix') || title.includes('dj '))) {
+        score -= 200;
+      }
+      if (!cleanQ.includes('slowed') && (title.includes('slowed') || title.includes('reverb') || title.includes('8d'))) {
+        score -= 300;
+      }
+      if (title.includes('official') || (song.copyright && !song.copyright.toLowerCase().includes('cover'))) {
+        score += 80;
+      }
+
+      // 3. Movie/Album Match (Movie tracklist songs related to query e.g. "Shershaah")
+      if (album === cleanQ || album.startsWith(cleanQ)) {
+        score += 350;
+      } else if (album.includes(cleanQ)) {
+        score += 200;
+      }
+
+      // 4. Artist Match
+      if (artist.includes(cleanQ)) {
+        score += 150;
+      }
+
+      // 5. Language preference bonus
+      if (lang && lang !== 'all' && (song.language || '').toLowerCase().includes(lang)) {
+        score += 250;
+      }
+
+      return score;
     }
+
+    combinedSongs.sort((a, b) => scoreRelevance(b, query, language) - scoreRelevance(a, query, language));
+    songs = combinedSongs;
 
     // If direct songs returned fewer than 2, try upstream proxy
     if (songs.length < 2) {

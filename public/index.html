@@ -445,6 +445,55 @@
     </div>
   </div>
 
+  <!-- DOWNLOAD OPTIONS MODAL (IMAGE & PROMPT: IN-APP vs LOCAL DEVICE) -->
+  <div class="modal-backdrop spotify-sheet-backdrop" id="downloadOptionsModal">
+    <div class="spotify-sheet-content download-sheet-content">
+      <div class="sheet-drag-handle"></div>
+      <div class="sheet-track-header">
+        <img id="dlModalTrackImg" class="sheet-track-img" src="" alt="Track Cover">
+        <div class="sheet-track-info">
+          <div id="dlModalTrackTitle" class="sheet-track-title">Song Title</div>
+          <div id="dlModalTrackArtist" class="sheet-track-artist">Artist Name</div>
+        </div>
+        <button class="icon-btn sheet-close-btn" id="closeDownloadOptionsModal">&times;</button>
+      </div>
+
+      <div class="download-modal-intro">
+        <span class="download-modal-heading">Select Download Option</span>
+      </div>
+
+      <div class="sheet-actions-list download-options-list">
+        <!-- Option 1: Normal Download (In-App) -->
+        <button class="download-option-card" id="dlOptionNormalBtn" type="button">
+          <div class="dl-card-icon dl-icon-inapp">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14l-4-4 1.41-1.41L11 13.17V7h2v6.17l2.59-2.58L17 12l-5 5z"/></svg>
+          </div>
+          <div class="dl-card-body">
+            <div class="dl-card-title-row">
+              <span class="dl-card-title">Normal Download (In-App)</span>
+              <span class="dl-card-badge spotify-badge">Spotify Style</span>
+            </div>
+            <p class="dl-card-desc">Stored inside the app library for offline listening. Does not save to phone storage or appear in files.</p>
+          </div>
+        </button>
+
+        <!-- Option 2: Download to Local Device -->
+        <button class="download-option-card" id="dlOptionLocalBtn" type="button">
+          <div class="dl-card-icon dl-icon-local">
+            <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+          </div>
+          <div class="dl-card-body">
+            <div class="dl-card-title-row">
+              <span class="dl-card-title">Download to Local Device</span>
+              <span class="dl-card-badge local-badge">MP3 File</span>
+            </div>
+            <p class="dl-card-desc">Downloads the MP3 file directly to your phone/PC storage (Downloads folder) to keep on device.</p>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- FULLSCREEN PLAYER OVERLAY (Spotify Mobile Style) -->
   <div class="fullscreen-mode" id="fullscreenMode">
     <button class="icon-btn fullscreen-exit" id="fullscreenExitBtn" title="Exit Fullscreen">
@@ -460,9 +509,14 @@
         <h2 id="fsTitle" class="fs-song-title">Song Title</h2>
         <p id="fsArtist" class="fs-song-artist">Artist Name</p>
       </div>
-      <button class="player-heart-btn fs-heart-btn" id="fsHeartBtn" title="Save Song">
-        <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-      </button>
+      <div class="fs-actions-right">
+        <button class="player-heart-btn fs-heart-btn" id="fsHeartBtn" title="Save Song">
+          <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        </button>
+        <button class="player-action-sub-btn fs-download-btn" id="fsDownloadBtn" title="Download Options">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Fullscreen Timeline / Seek Bar -->
@@ -480,19 +534,19 @@
 
     <!-- Fullscreen Controls -->
     <div class="fs-controls-row">
-      <button class="control-btn fs-btn" id="fsShuffleBtn" onclick="App.player.toggleShuffle()" title="Shuffle">
+      <button class="control-btn fs-btn" id="fsShuffleBtn" title="Shuffle">
         <svg viewBox="0 0 24 24"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>
       </button>
-      <button class="control-btn fs-btn" id="fsPrevBtn" onclick="App.player.playPrevious()" title="Previous">
+      <button class="control-btn fs-btn" id="fsPrevBtn" title="Previous">
         <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
       </button>
-      <button class="big-play-btn fs-main-play-btn" id="fsPlayPauseBtn" onclick="App.player.togglePlay()">
+      <button class="big-play-btn fs-main-play-btn" id="fsPlayPauseBtn" title="Play / Pause">
         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
       </button>
-      <button class="control-btn fs-btn" id="fsNextBtn" onclick="App.player.playNext()" title="Next">
+      <button class="control-btn fs-btn" id="fsNextBtn" title="Next">
         <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
       </button>
-      <button class="control-btn fs-btn" id="fsRepeatBtn" onclick="App.player.toggleRepeat()" title="Repeat">
+      <button class="control-btn fs-btn" id="fsRepeatBtn" title="Repeat">
         <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
       </button>
     </div>

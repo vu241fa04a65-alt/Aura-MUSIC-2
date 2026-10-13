@@ -1822,9 +1822,91 @@ body {
   margin-top: 4px;
 }
 
+.fs-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .fs-heart-btn {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.fs-heart-btn svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  transition: all 0.2s ease;
+}
+
+.fs-heart-btn.liked {
+  color: #ef4444 !important;
+}
+
+.fs-heart-btn.liked svg {
+  fill: #ef4444 !important;
+  stroke: #ef4444 !important;
+  animation: heartPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.fs-download-btn {
   width: 44px;
   height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.fs-download-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.fs-download-btn:hover {
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
+.control-btn.active,
+.fs-btn.active {
+  color: #1db954 !important;
+  position: relative;
+}
+
+.control-btn.active::after,
+.fs-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background-color: #1db954;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(29, 185, 84, 0.8);
 }
 
 /* Fullscreen Timeline / Seek Bar */
@@ -2122,9 +2204,20 @@ body {
 
   .player-center .playback-bar-wrap,
   .player-center #shuffleBtn,
-  .player-center #prevBtn,
   .player-center #repeatBtn {
     display: none !important;
+  }
+
+  .player-center #prevBtn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 4px;
+    flex-shrink: 0;
   }
 
   .player-center .player-controls {
@@ -2890,5 +2983,134 @@ body {
   justify-content: flex-end;
   gap: 4px;
 }
+
+/* Download Options Modal (In-App vs Local Device) */
+.download-sheet-content {
+  max-width: 480px;
+}
+
+.download-modal-intro {
+  padding: 12px 18px 4px 18px;
+}
+
+.download-modal-heading {
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary);
+}
+
+.download-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 18px 24px 18px;
+}
+
+.download-option-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  color: var(--text-primary);
+  font-family: inherit;
+  outline: none;
+}
+
+.download-option-card:hover,
+.download-option-card:active {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
+}
+
+.dl-card-icon {
+  width: 46px;
+  height: 46px;
+  min-width: 46px;
+  min-height: 46px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dl-icon-inapp {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+.dl-icon-inapp svg {
+  width: 24px;
+  height: 24px;
+  fill: #ffffff;
+}
+
+.dl-icon-local {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+}
+
+.dl-icon-local svg {
+  width: 24px;
+  height: 24px;
+  fill: #ffffff;
+}
+
+.dl-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.dl-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.dl-card-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.dl-card-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+}
+
+.dl-card-badge.spotify-badge {
+  background: #1db954;
+  color: #000000;
+}
+
+.dl-card-badge.local-badge {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.dl-card-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  margin: 0;
+}
+
 
 
