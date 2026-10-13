@@ -1151,14 +1151,16 @@ class AppController {
   async playPlaylistImmediately(id) {
     const customPl = this.library.getPlaylist(id);
     if (customPl && customPl.songs.length > 0) {
-      this.player.setQueue(customPl.songs, 0);
+      this.currentTableSongs = customPl.songs;
+      this.player.setQueue(customPl.songs, 0, 'playlist');
       return;
     }
     try {
       const resp = await fetch(`/api/playlist/${encodeURIComponent(id)}?quality=${this.player.quality}`);
       const data = await resp.json();
       if (data.success && data.songs?.length) {
-        this.player.setQueue(data.songs, 0);
+        this.currentTableSongs = data.songs;
+        this.player.setQueue(data.songs, 0, 'playlist');
       }
     } catch (e) {
       console.error(e);
@@ -1197,7 +1199,8 @@ class AppController {
       const resp = await fetch(`/api/album/${encodeURIComponent(id)}?quality=${this.player.quality}`);
       const data = await resp.json();
       if (data.success && data.songs?.length) {
-        this.player.setQueue(data.songs, 0);
+        this.currentTableSongs = data.songs;
+        this.player.setQueue(data.songs, 0, 'album');
       }
     } catch (e) {
       console.error(e);
@@ -1253,12 +1256,15 @@ class AppController {
 
   playCollectionQueue(songs) {
     if (!songs || !songs.length) return;
-    this.player.setQueue(songs, 0);
+    this.currentTableSongs = songs;
+    const ctx = this.currentView === 'liked' ? 'liked' : (this.currentView || 'collection');
+    this.player.setQueue(songs, 0, ctx);
   }
 
   // --- Liked Songs View ---
   renderLikedSongsView() {
     const liked = this.library.getLikedSongs();
+    this.currentTableSongs = liked;
     const safeSongsJSON = JSON.stringify(liked).replace(/"/g, '&quot;');
 
     let html = `
@@ -1456,7 +1462,7 @@ class AppController {
               const songJSON = JSON.stringify(song).replace(/"/g, '&quot;');
 
               return `
-                <tr class="song-row ${trackId === currentTrackId ? 'playing' : ''}" onclick="App.onSongRowClick(event, ${idx})">
+                <tr class="song-row ${trackId === currentTrackId ? 'playing' : ''}" data-track-id="${trackId}" onclick="App.onSongRowClick(event, ${idx})">
                   <td class="song-cell-num">
                     ${isPlayingThis ? `
                       <div class="playing-bars">
@@ -1545,22 +1551,24 @@ class AppController {
   }
 
   playTrackFromList(song, index) {
+    const ctx = this.currentView === 'liked' ? 'liked' : (this.currentView || 'collection');
     if (Array.isArray(this.currentTableSongs) && this.currentTableSongs.length > 0) {
-      this.player.setQueue(this.currentTableSongs, index);
+      this.player.setQueue(this.currentTableSongs, index, ctx);
     } else {
-      this.player.setQueue([song], 0);
+      this.player.setQueue([song], 0, ctx);
     }
   }
 
   playTrack(song) {
+    const ctx = this.currentView === 'liked' ? 'liked' : (this.currentView || 'collection');
     if (Array.isArray(this.currentTableSongs) && this.currentTableSongs.length > 0) {
       const idx = this.currentTableSongs.findIndex(s => this.library.getTrackId(s) === this.library.getTrackId(song));
       if (idx >= 0) {
-        this.player.setQueue(this.currentTableSongs, idx);
+        this.player.setQueue(this.currentTableSongs, idx, ctx);
         return;
       }
     }
-    this.player.setQueue([song], 0);
+    this.player.setQueue([song], 0, ctx);
   }
 
   playSearchResultTopSong() {
@@ -1790,6 +1798,12 @@ class AppController {
 
     // Update queue active styling
     this.renderQueue();
+
+    // Update active row highlighting across songs table
+    const curTrackId = this.library.getTrackId(track);
+    document.querySelectorAll('.song-row').forEach(row => {
+      row.classList.toggle('playing', row.dataset.trackId === curTrackId);
+    });
 
     // Auto load lyrics if lyrics overlay is open
     if (this.lyrics.isOpen) {

@@ -14,6 +14,7 @@ class AudioPlayer {
     this.queue = [];
     this.originalQueue = [];
     this.queueIndex = -1;
+    this.queueContext = null;
     this.isPlaying = false;
     this.isShuffled = false;
     this.repeatMode = 'off'; // 'off' | 'all' | 'one'
@@ -261,11 +262,20 @@ class AudioPlayer {
   }
 
   // --- Queue Management ---
-  setQueue(tracks, startIndex = 0) {
+  setQueue(tracks, startIndex = 0, context = null) {
     if (!Array.isArray(tracks) || tracks.length === 0) return;
+    this.queueContext = context;
     this.originalQueue = [...tracks];
-    this.queue = this.isShuffled ? this.shuffleArray([...tracks]) : [...tracks];
-    this.queueIndex = Math.max(0, Math.min(startIndex, this.queue.length - 1));
+
+    const targetTrack = tracks[startIndex] || tracks[0];
+    if (this.isShuffled) {
+      this.queue = this.shuffleArray([...tracks]);
+      const idx = this.queue.findIndex(t => this.getTrackId(t) === this.getTrackId(targetTrack));
+      this.queueIndex = idx >= 0 ? idx : 0;
+    } else {
+      this.queue = [...tracks];
+      this.queueIndex = Math.max(0, Math.min(startIndex, this.queue.length - 1));
+    }
 
     if (this.queue[this.queueIndex]) {
       this.loadTrack(this.queue[this.queueIndex]);
@@ -503,12 +513,21 @@ class AudioPlayer {
     }
   }
 
+  shouldLoopQueue() {
+    if (this.repeatMode === 'all') return true;
+    if (this.queueContext === 'liked') return true;
+    if (['playlist', 'collection', 'downloaded', 'local', 'album', 'artist'].includes(this.queueContext)) return true;
+    if (window.App && window.App.currentView === 'liked') return true;
+    return false;
+  }
+
   async playNext() {
     if (this.queue.length === 0) return;
     if (this.queueIndex < this.queue.length - 1) {
       this.queueIndex++;
       this.loadTrack(this.queue[this.queueIndex]);
-    } else if (this.repeatMode === 'all') {
+    } else if (this.shouldLoopQueue()) {
+      // End of liked songs/playlist reached: loop and repeat from top to bottom
       this.queueIndex = 0;
       this.loadTrack(this.queue[0]);
     } else {
@@ -564,7 +583,7 @@ class AudioPlayer {
     if (this.queueIndex > 0) {
       this.queueIndex--;
       this.loadTrack(this.queue[this.queueIndex]);
-    } else if (this.repeatMode === 'all') {
+    } else if (this.shouldLoopQueue()) {
       this.queueIndex = this.queue.length - 1;
       this.loadTrack(this.queue[this.queueIndex]);
     } else {
@@ -625,7 +644,8 @@ class AudioPlayer {
       currentTrack: this.currentTrack,
       playbackPosition: this.audio.currentTime || 0,
       isShuffled: this.isShuffled,
-      repeatMode: this.repeatMode
+      repeatMode: this.repeatMode,
+      queueContext: this.queueContext
     });
   }
 
@@ -640,6 +660,7 @@ class AudioPlayer {
       this.queueIndex = saved.queueIndex >= 0 ? saved.queueIndex : 0;
       this.isShuffled = !!saved.isShuffled;
       this.repeatMode = saved.repeatMode || 'off';
+      this.queueContext = saved.queueContext || null;
 
       if (window.App) {
         window.App.renderQueue();
