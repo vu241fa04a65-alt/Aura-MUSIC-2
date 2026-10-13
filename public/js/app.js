@@ -523,7 +523,9 @@ class AppController {
     this.updateNavButtons();
 
     document.querySelectorAll('.nav-link, .mobile-nav-item').forEach(link => {
-      link.classList.toggle('active', link.dataset.nav === view);
+      const nav = link.dataset.nav;
+      const isActive = (nav === view) || (nav === 'liked' && view === 'playlists');
+      link.classList.toggle('active', isActive);
     });
 
     if (view === 'home') {
@@ -1200,6 +1202,13 @@ class AppController {
     const safeSongsJSON = JSON.stringify(collection.songs).replace(/"/g, '&quot;');
 
     let html = `
+      ${collection.isCustom ? `
+        <div style="margin-bottom: 16px;">
+          <button class="tag-btn" onclick="App.navigateTo('playlists')" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; background: rgba(255,255,255,0.08); border-radius: 999px; padding: 6px 14px; font-weight: 600;">
+            &larr; Back to Playlists
+          </button>
+        </div>
+      ` : ''}
       <div class="detail-hero">
         <img class="detail-hero-cover" src="${collection.image}" alt="${collection.title}">
         <div class="detail-hero-info">
@@ -1243,12 +1252,34 @@ class AppController {
     this.player.setQueue(songs, 0);
   }
 
+  // --- Sub-Tabs for Library / Liked / Playlists / Downloads (Spotify Mobile Style) ---
+  renderLibrarySubTabsHTML(activeTab = 'liked') {
+    return `
+      <div class="library-filter-pills-wrap">
+        <button type="button" class="lib-pill-btn ${activeTab === 'liked' ? 'active' : ''}" onclick="App.navigateTo('liked')">
+          <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          <span>Liked Songs</span>
+        </button>
+        <button type="button" class="lib-pill-btn ${activeTab === 'playlists' ? 'active' : ''}" onclick="App.navigateTo('playlists')">
+          <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+          <span>Playlists</span>
+        </button>
+        <button type="button" class="lib-pill-btn ${activeTab === 'downloaded' ? 'active' : ''}" onclick="App.navigateTo('downloaded')">
+          <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+          <span>Downloads on App</span>
+        </button>
+      </div>
+    `;
+  }
+
   // --- Liked Songs View ---
   renderLikedSongsView() {
     const liked = this.library.getLikedSongs();
     const safeSongsJSON = JSON.stringify(liked).replace(/"/g, '&quot;');
 
     let html = `
+      ${this.renderLibrarySubTabsHTML('liked')}
+
       <div class="detail-hero">
         <div class="library-item-icon liked-gradient" style="width: 190px; height: 190px; border-radius: var(--radius-md);">
           <svg style="width: 80px; height: 80px; fill: #fff;" viewBox="0 0 24 24">
@@ -1290,6 +1321,8 @@ class AppController {
     const playlists = this.library.getPlaylists();
 
     let html = `
+      ${this.renderLibrarySubTabsHTML('playlists')}
+
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <div>
           <h1 style="font-size: 2rem; font-weight: 800;">My Playlists</h1>
@@ -1335,6 +1368,8 @@ class AppController {
     const safeJSON = JSON.stringify(downloadedTracks).replace(/"/g, '&quot;');
 
     let html = `
+      ${this.renderLibrarySubTabsHTML('downloaded')}
+
       <div class="detail-hero">
         <div class="library-item-icon liked-gradient" style="width: 190px; height: 190px; border-radius: var(--radius-md); background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
           <svg style="width: 80px; height: 80px; fill: #fff;" viewBox="0 0 24 24">

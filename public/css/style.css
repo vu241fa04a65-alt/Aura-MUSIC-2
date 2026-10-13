@@ -3112,5 +3112,66 @@ body {
   margin: 0;
 }
 
+/* Library Filter Pills (Liked / Playlists / Downloads on App) */
+.library-filter-pills-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 0 16px 0;
+  margin-bottom: 12px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.library-filter-pills-wrap::-webkit-scrollbar {
+  display: none;
+}
+
+.lib-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+}
+
+.lib-pill-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  transition: fill 0.2s ease;
+}
+
+.lib-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.lib-pill-btn.active {
+  background: #1db954 !important;
+  color: #000000 !important;
+  border-color: #1db954 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 14px rgba(29, 185, 84, 0.35);
+}
+
+.lib-pill-btn.active svg {
+  fill: #000000 !important;
+}
+
+
 
 
