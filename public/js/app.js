@@ -309,6 +309,11 @@ class AppController {
       this.player.clearQueue();
       this.showToast('Playback queue cleared');
     });
+    document.getElementById('fsQueueBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.queueDrawer?.classList.toggle('open');
+      this.renderQueue();
+    });
 
     // Equalizer Modal Open & Close
     document.getElementById('eqToggleBtn')?.addEventListener('click', () => {
@@ -1451,7 +1456,7 @@ class AppController {
               const songJSON = JSON.stringify(song).replace(/"/g, '&quot;');
 
               return `
-                <tr class="song-row ${trackId === currentTrackId ? 'playing' : ''}" onclick="App.onSongRowClick(event, ${songJSON}, ${idx})">
+                <tr class="song-row ${trackId === currentTrackId ? 'playing' : ''}" onclick="App.onSongRowClick(event, ${idx})">
                   <td class="song-cell-num">
                     ${isPlayingThis ? `
                       <div class="playing-bars">
@@ -1475,21 +1480,21 @@ class AppController {
                   <td class="song-cell-dur">${dur}</td>
                   <td class="song-cell-actions">
                     <!-- Like Heart Button -->
-                    <button type="button" class="song-action-btn heart-btn ${isLiked ? 'liked' : ''}" data-track-id="${trackId}" onclick="event.stopPropagation(); App.openSavedInModal(${songJSON})" onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" title="${isLiked ? 'Saved in Liked Songs' : 'Save Song'}">
+                    <button type="button" class="song-action-btn heart-btn ${isLiked ? 'liked' : ''}" data-track-id="${trackId}" onclick="event.stopPropagation(); App.openSavedInModalByIndex(${idx})" onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" title="${isLiked ? 'Saved in Liked Songs' : 'Save Song'}">
                       <svg viewBox="0 0 24 24">
                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                       </svg>
                     </button>
 
                     <!-- Download Options Button -->
-                    <button type="button" class="song-action-btn song-download-btn" onclick="event.stopPropagation(); App.openDownloadModal(${songJSON})" onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" title="Download Song">
+                    <button type="button" class="song-action-btn song-download-btn" onclick="event.stopPropagation(); App.downloadSongByIndex(${idx})" onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" title="Download Song">
                       <svg viewBox="0 0 24 24">
                         <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
                       </svg>
                     </button>
 
                     <!-- Three Dots Menu Button -->
-                    <button type="button" class="song-action-btn song-menu-trigger-btn" onclick="event.stopPropagation(); App.openSongMenu(${songJSON})" onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" title="More Options">
+                    <button type="button" class="song-action-btn song-menu-trigger-btn" onclick="event.stopPropagation(); App.openSongMenuByIndex(${idx})" onpointerdown="event.stopPropagation()" ontouchstart="event.stopPropagation()" title="More Options">
                       <svg viewBox="0 0 24 24">
                         <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
                       </svg>
@@ -1510,11 +1515,27 @@ class AppController {
     `;
   }
 
-  onSongRowClick(event, song, index) {
+  openSongMenuByIndex(idx) {
+    const song = this.currentTableSongs?.[idx];
+    if (song) this.openSongMenu(song);
+  }
+
+  openSavedInModalByIndex(idx) {
+    const song = this.currentTableSongs?.[idx];
+    if (song) this.openSavedInModal(song);
+  }
+
+  downloadSongByIndex(idx) {
+    const song = this.currentTableSongs?.[idx];
+    if (song) this.downloadSong(song);
+  }
+
+  onSongRowClick(event, idx) {
     if (event.target.closest('button') || event.target.closest('.song-cell-actions') || event.target.closest('.song-action-btn')) {
       return;
     }
-    this.playTrackFromList(song, index);
+    const song = this.currentTableSongs?.[idx];
+    if (song) this.playTrackFromList(song, idx);
   }
 
   removeSongFromCustomPlaylist(playlistId, trackId) {
@@ -1598,28 +1619,77 @@ class AppController {
     }
 
     const curIndex = this.player.queueIndex;
+    const nowPlayingTrack = this.player.queue[curIndex];
+    const upcomingTracks = this.player.queue.map((track, idx) => ({ track, idx })).filter(item => item.idx !== curIndex);
 
-    listEl.innerHTML = this.player.queue.map((track, idx) => {
-      const isCur = idx === curIndex;
-      return `
-        <div class="queue-item ${isCur ? 'active-track' : ''}">
-          <div class="queue-reorder-ctrls">
-            <button class="queue-reorder-btn" onclick="App.player.reorderQueue(${idx}, ${idx - 1})" ${idx === 0 ? 'disabled style="opacity:0.3"' : ''} title="Move Up">▲</button>
-            <button class="queue-reorder-btn" onclick="App.player.reorderQueue(${idx}, ${idx + 1})" ${idx === this.player.queue.length - 1 ? 'disabled style="opacity:0.3"' : ''} title="Move Down">▼</button>
-          </div>
-          <img src="${track.image}" style="width: 40px; height: 40px; border-radius: var(--radius-sm); object-fit: cover;" alt="">
-          <div style="flex: 1; min-width: 0; cursor: pointer;" onclick="App.player.queueIndex = ${idx}; App.player.loadTrack(App.player.queue[${idx}]);">
-            <div style="font-weight: 600; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: ${isCur ? 'var(--accent-green)' : 'var(--text-primary)'};">
-              ${track.title}
+    let html = '';
+
+    if (nowPlayingTrack) {
+      html += `
+        <div style="margin-bottom: 16px;">
+          <div style="font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 700;">Now Playing</div>
+          <div class="queue-item active-track" style="border: 1px solid rgba(29, 185, 84, 0.4); background: rgba(29, 185, 84, 0.1);">
+            <img src="${nowPlayingTrack.image}" style="width: 44px; height: 44px; border-radius: var(--radius-sm); object-fit: cover;" alt="">
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 700; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--accent-green);">
+                ${nowPlayingTrack.title}
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${nowPlayingTrack.artist}
+              </div>
             </div>
-            <div style="font-size: 0.78rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              ${track.artist}
+            <div class="playing-bars" style="margin-right: 6px;">
+              <span></span><span></span><span></span><span></span>
             </div>
           </div>
-          <button class="queue-remove-btn" onclick="App.player.removeFromQueue(${idx})" title="Remove from queue">&times;</button>
         </div>
       `;
-    }).join('');
+    }
+
+    if (upcomingTracks.length > 0) {
+      html += `
+        <div>
+          <div style="font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 700;">
+            Next in Queue (${upcomingTracks.length})
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            ${upcomingTracks.map(({ track, idx }) => `
+              <div class="queue-item">
+                <div class="queue-reorder-ctrls">
+                  <button class="queue-reorder-btn" onclick="App.player.reorderQueue(${idx}, ${idx - 1})" ${idx === 0 ? 'disabled style="opacity:0.3"' : ''} title="Move Up">▲</button>
+                  <button class="queue-reorder-btn" onclick="App.player.reorderQueue(${idx}, ${idx + 1})" ${idx === this.player.queue.length - 1 ? 'disabled style="opacity:0.3"' : ''} title="Move Down">▼</button>
+                </div>
+                <img src="${track.image}" style="width: 40px; height: 40px; border-radius: var(--radius-sm); object-fit: cover;" alt="">
+                <div style="flex: 1; min-width: 0; cursor: pointer;" onclick="App.playQueueItem(${idx})">
+                  <div style="font-weight: 600; font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary);">
+                    ${track.title}
+                  </div>
+                  <div style="font-size: 0.78rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${track.artist}
+                  </div>
+                </div>
+                <button class="queue-remove-btn" onclick="App.player.removeFromQueue(${idx})" title="Remove from queue">&times;</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div style="padding: 16px 0; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">
+          No upcoming songs in queue
+        </div>
+      `;
+    }
+
+    listEl.innerHTML = html;
+  }
+
+  playQueueItem(idx) {
+    if (this.player.queue && this.player.queue[idx]) {
+      this.player.queueIndex = idx;
+      this.player.loadTrack(this.player.queue[idx]);
+    }
   }
 
   // --- UI Update Callbacks ---
@@ -1979,7 +2049,6 @@ class AppController {
       addToQueueBtn.onclick = () => {
         this.closeSongMenu();
         this.player.addToQueue(song);
-        this.showToast(`Added "${song.title}" to Queue`);
       };
     }
 

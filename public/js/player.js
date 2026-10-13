@@ -274,17 +274,40 @@ class AudioPlayer {
     if (window.App) window.App.renderQueue();
   }
 
+  getTrackId(track) {
+    if (!track) return '';
+    if (typeof track === 'string') return track;
+    if (track.id) return String(track.id);
+    const title = (track.title || '').trim().toLowerCase();
+    const artist = (track.artist || '').trim().toLowerCase();
+    return `${title}:::${artist}`.replace(/[^a-z0-9]/g, '_');
+  }
+
   addToQueue(track) {
     if (!track) return;
-    this.queue.push(track);
-    this.originalQueue.push(track);
-    if (!this.currentTrack && this.queue.length === 1) {
+
+    // Prevent accidental rapid duplicate additions
+    const nextIdx = this.queueIndex + 1;
+    const nextTrack = this.queue[nextIdx];
+    if (nextTrack && this.getTrackId(nextTrack) === this.getTrackId(track)) {
+      if (window.App) window.App.showToast(`"${track.title}" is already next in Queue`);
+      return;
+    }
+
+    if (!this.currentTrack || this.queue.length === 0) {
+      this.queue = [track];
+      this.originalQueue = [track];
       this.queueIndex = 0;
       this.loadTrack(track);
+    } else {
+      // Place right after the current song so it plays NEXT in the queue
+      const insertIndex = Math.min(this.queue.length, this.queueIndex + 1);
+      this.queue.splice(insertIndex, 0, track);
+      this.originalQueue.splice(insertIndex, 0, track);
     }
     this.savePlaybackStateNow();
     if (window.App) {
-      window.App.showToast(`Added "${track.title}" to Queue`);
+      window.App.showToast(`✓ Added "${track.title}" to play next`);
       window.App.renderQueue();
     }
   }
@@ -293,7 +316,8 @@ class AudioPlayer {
     if (index < 0 || index >= this.queue.length) return;
     const removed = this.queue.splice(index, 1)[0];
     if (removed) {
-      this.originalQueue = this.originalQueue.filter(t => t.id !== removed.id);
+      const origIdx = this.originalQueue.findIndex(t => this.getTrackId(t) === this.getTrackId(removed));
+      if (origIdx >= 0) this.originalQueue.splice(origIdx, 1);
     }
     if (index < this.queueIndex) {
       this.queueIndex--;
@@ -322,7 +346,7 @@ class AudioPlayer {
 
     // Adjust active index
     if (this.currentTrack) {
-      this.queueIndex = this.queue.findIndex(t => t.id === this.currentTrack.id);
+      this.queueIndex = this.queue.findIndex(t => this.getTrackId(t) === this.getTrackId(this.currentTrack));
     }
     this.savePlaybackStateNow();
     if (window.App) window.App.renderQueue();

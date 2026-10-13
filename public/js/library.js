@@ -66,6 +66,7 @@ class MusicLibrary {
           if (!Array.isArray(this.state.history)) this.state.history = [];
           if (!Array.isArray(this.state.recentSearches)) this.state.recentSearches = [];
           if (!Array.isArray(this.state.downloadedSongs)) this.state.downloadedSongs = [];
+          this.seedDefaultLikedSongs();
           return;
         }
       }
@@ -75,6 +76,25 @@ class MusicLibrary {
 
     // Attempt migration from v1 legacy keys
     this.migrateFromV1();
+    this.seedDefaultLikedSongs();
+    this.saveStore();
+  }
+
+  seedDefaultLikedSongs() {
+    if (this.state.spotify_liked_seeded_v3) return;
+    const defaults = window.DEFAULT_LIKED_SONGS;
+    if (Array.isArray(defaults) && defaults.length > 0) {
+      if (!Array.isArray(this.state.likedSongs)) this.state.likedSongs = [];
+      const existingIds = new Set(this.state.likedSongs.map(s => this.getTrackId(s)));
+      for (const song of defaults) {
+        const id = this.getTrackId(song);
+        if (id && !existingIds.has(id)) {
+          this.state.likedSongs.push(song);
+          existingIds.add(id);
+        }
+      }
+    }
+    this.state.spotify_liked_seeded_v3 = true;
     this.saveStore();
   }
 
