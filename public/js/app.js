@@ -73,6 +73,11 @@ class AppController {
 
     // Init local files drop zone
     this.localFiles.initDropZone();
+
+    if (this.player?.currentTrack) {
+      document.getElementById('playerBar')?.classList.add('has-track');
+      document.querySelector('.app-container')?.classList.add('has-player');
+    }
   }
 
   bindEvents() {
@@ -1685,6 +1690,7 @@ class AppController {
     const thumbEl = document.getElementById('playerThumb');
     const playerBar = document.getElementById('playerBar');
     if (playerBar) playerBar.classList.add('has-track');
+    document.querySelector('.app-container')?.classList.add('has-player');
 
     if (titleEl) titleEl.textContent = track.title;
     if (artistEl) artistEl.textContent = track.artist;
