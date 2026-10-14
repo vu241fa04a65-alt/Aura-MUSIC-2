@@ -8,11 +8,28 @@ class AudioPlayer {
   constructor() {
     this.audio = new Audio();
     this.audio.preload = 'auto';
-    this.audio.crossOrigin = 'anonymous';
     this.audio.setAttribute('playsinline', 'true');
     this.audio.setAttribute('webkit-playsinline', 'true');
+    this.audio.style.display = 'none';
+
+    // Mount to DOM to prevent mobile browsers from freezing audio as a detached element
+    const mountAudio = () => {
+      if (document.body && !document.body.contains(this.audio)) {
+        document.body.appendChild(this.audio);
+      }
+    };
+    if (document.body) {
+      mountAudio();
+    } else {
+      document.addEventListener('DOMContentLoaded', mountAudio);
+    }
+
     this.wakeLock = null;
     this.eqEnabled = localStorage.getItem('aura_eq_enabled') === 'true';
+    if (this.eqEnabled) {
+      this.audio.crossOrigin = 'anonymous';
+    }
+    this.isExplicitlyPausedByUser = false;
 
     this.currentTrack = null;
     this.queue = [];
@@ -51,6 +68,7 @@ class AudioPlayer {
     if (this.audioCtx) return;
     if (!this.eqEnabled) return;
     try {
+      this.audio.crossOrigin = 'anonymous';
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
       this.audioCtx = new AudioContext();
@@ -224,6 +242,7 @@ class AudioPlayer {
   initEvents() {
     this.audio.addEventListener('play', () => {
       this.isPlaying = true;
+      this.isExplicitlyPausedByUser = false;
       this.updateMediaSessionPlaybackState('playing');
       this.updateMediaSessionPosition();
       this.requestWakeLock();
@@ -231,15 +250,40 @@ class AudioPlayer {
     });
 
     this.audio.addEventListener('pause', () => {
-      this.isPlaying = false;
-      this.updateMediaSessionPlaybackState('paused');
-      this.releaseWakeLock();
-      this.savePlaybackStateNow();
-      if (window.App) window.App.updatePlayState(false);
+      if (this.isExplicitlyPausedByUser) {
+        this.isPlaying = false;
+        this.updateMediaSessionPlaybackState('paused');
+        this.releaseWakeLock();
+        this.savePlaybackStateNow();
+        if (window.App) window.App.updatePlayState(false);
+      } else {
+        // Mobile screen turned off / OS lock transient pause!
+        // Do NOT mark isPlaying as false. Auto-resume so the song continues playing!
+        setTimeout(() => {
+          if (!this.isExplicitlyPausedByUser && this.currentTrack && this.audio.paused) {
+            this.audio.play().catch(() => {});
+          }
+        }, 250);
+      }
     });
 
     this.audio.addEventListener('waiting', () => {
       if (window.App) window.App.setBufferingState(true);
+      // Auto-kick if buffering in background
+      setTimeout(() => {
+        if (!this.isExplicitlyPausedByUser && this.audio.paused) {
+          this.audio.play().catch(() => {});
+        }
+      }, 1000);
+    });
+
+    this.audio.addEventListener('stalled', () => {
+      // Network stalled while phone locked: try resuming
+      setTimeout(() => {
+        if (!this.isExplicitlyPausedByUser && this.audio.paused) {
+          this.audio.play().catch(() => {});
+        }
+      }, 800);
     });
 
     this.audio.addEventListener('playing', () => {
@@ -625,6 +669,7 @@ class AudioPlayer {
   }
 
   play() {
+    this.isExplicitlyPausedByUser = false;
     if (this.eqEnabled) {
       this.initWebAudio();
       if (this.audioCtx && this.audioCtx.state === 'suspended') {
@@ -640,20 +685,25 @@ class AudioPlayer {
     this.requestWakeLock();
   }
 
-  pause() {
+  pause(explicit = true) {
+    if (explicit) {
+      this.isExplicitlyPausedByUser = true;
+    }
     this.audio.pause();
     this.releaseWakeLock();
   }
 
   togglePlay() {
     if (this.audio.paused) {
+      this.isExplicitlyPausedByUser = false;
       if (!this.currentTrack && this.queue.length > 0) {
         this.loadTrack(this.queue[0]);
       } else {
         this.play();
       }
     } else {
-      this.pause();
+      this.isExplicitlyPausedByUser = true;
+      this.pause(true);
     }
   }
 
@@ -821,8 +871,14 @@ class AudioPlayer {
     if (!('mediaSession' in navigator)) return;
 
     try {
-      navigator.mediaSession.setActionHandler('play', () => this.play());
-      navigator.mediaSession.setActionHandler('pause', () => this.pause());
+      navigator.mediaSession.setActionHandler('play', () => {
+        this.isExplicitlyPausedByUser = false;
+        this.play();
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        this.isExplicitlyPausedByUser = true;
+        this.pause(true);
+      });
       navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious());
       navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
       navigator.mediaSession.setActionHandler('seekto', (details) => {
